@@ -2,8 +2,17 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PronoTracker Pro - IA & Performance</title>
+
+  <!-- PWA : icône + nom sur écran d'accueil (aucun impact sur le fonctionnement de l'appli) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ea580c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PronoTracker">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-192.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -46,6 +55,15 @@
           <i class="fa-solid fa-upload text-amber-600"></i> Importer
           <input type="file" id="importFile" accept=".json" onchange="importJSON(event)" class="hidden">
         </label>
+      </div>
+    </div>
+
+    <!-- ALERTE DE SAUVEGARDE -->
+    <div id="backupBanner" class="hidden items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold px-4 py-3 rounded-xl">
+      <span id="backupBannerText" class="flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="exportJSON()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg transition">Sauvegarder maintenant</button>
+        <button onclick="snoozeBackupBanner()" class="text-amber-700 hover:text-amber-900 px-2 py-1.5 font-medium">Plus tard</button>
       </div>
     </div>
 
@@ -341,13 +359,20 @@
               <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher..." class="input-field text-xs pl-8 py-1.5 w-full">
             </div>
             
-            <select id="filterPeriod" onchange="render()" class="input-field text-xs py-1.5">
+            <select id="filterPeriod" onchange="onFilterPeriodChange()" class="input-field text-xs py-1.5">
               <option value="ALL">Toutes les dates</option>
               <option value="TODAY">Aujourd'hui</option>
               <option value="TOMORROW">Demain</option>
               <option value="THIS_WEEK">Cette semaine</option>
               <option value="THIS_MONTH">Ce mois-ci</option>
+              <option value="CUSTOM">Plage personnalisée...</option>
             </select>
+          </div>
+
+          <div id="customDateRange" class="hidden flex items-center gap-2 w-full sm:w-auto">
+            <input type="date" id="filterDateFrom" onchange="render()" class="input-field text-xs py-1.5">
+            <span class="text-xs text-slate-400 font-medium">→</span>
+            <input type="date" id="filterDateTo" onchange="render()" class="input-field text-xs py-1.5">
           </div>
         </div>
 
@@ -569,6 +594,48 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
+      updateBackupBanner();
+    }
+
+    function snoozeBackupBanner() {
+      localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString());
+      document.getElementById('backupBanner').classList.add('hidden');
+      document.getElementById('backupBanner').classList.remove('flex');
+    }
+
+    function updateBackupBanner() {
+      const banner = document.getElementById('backupBanner');
+      const textEl = document.getElementById('backupBannerText');
+      const lastBackup = localStorage.getItem('pronotracker_lastBackup');
+      const snooze = localStorage.getItem('pronotracker_backupSnooze');
+      const totalBets = (state.football || []).length + (state.tennis || []).length;
+
+      if (totalBets === 0) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        return;
+      }
+
+      const daysSince = (isoStr) => (Date.now() - new Date(isoStr).getTime()) / (1000 * 60 * 60 * 24);
+
+      if (snooze && daysSince(snooze) < 1) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        return;
+      }
+
+      let daysSinceBackup = lastBackup ? daysSince(lastBackup) : Infinity;
+
+      if (daysSinceBackup >= 3) {
+        const label = lastBackup ? `il y a ${Math.floor(daysSinceBackup)} jour(s)` : "jamais effectuée";
+        textEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Dernière sauvegarde : <strong>${label}</strong>. Tes données sont uniquement stockées sur cet appareil — pense à exporter régulièrement pour ne rien perdre.`;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }
     }
 
     function exportCSV() {
@@ -959,10 +1026,18 @@
       }
     }
 
+    function onFilterPeriodChange() {
+      const period = document.getElementById('filterPeriod').value;
+      document.getElementById('customDateRange').classList.toggle('hidden', period !== 'CUSTOM');
+      render();
+    }
+
     function getFilteredAndSortedBets() {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase();
       const period = document.getElementById('filterPeriod').value;
+      const dateFrom = document.getElementById('filterDateFrom')?.value || '';
+      const dateTo = document.getElementById('filterDateTo')?.value || '';
       
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
@@ -992,6 +1067,10 @@
         } else if (period === 'THIS_WEEK') {
           const betDate = new Date(b.date);
           matchPeriod = Math.ceil(Math.abs(now - betDate) / (1000 * 60 * 60 * 24)) <= 7;
+        } else if (period === 'CUSTOM') {
+          const betDateStr = b.date || '';
+          if (dateFrom && betDateStr < dateFrom) matchPeriod = false;
+          if (dateTo && betDateStr > dateTo) matchPeriod = false;
         }
 
         return matchSearch && matchQuick && matchPeriod;
@@ -1204,6 +1283,7 @@
     }
 
     function render() {
+      updateBackupBanner();
       const currentList = state[currentSport] || [];
       const filteredBets = getFilteredAndSortedBets();
       const tbody = document.getElementById('betsTbody');
