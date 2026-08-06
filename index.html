@@ -2,8 +2,17 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PronoTracker Pro - IA & Performance</title>
+
+  <!-- PWA : icône + nom sur écran d'accueil (aucun impact sur le fonctionnement de l'appli) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ea580c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PronoTracker">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-192.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,7 +33,7 @@
   <div class="max-w-7xl mx-auto space-y-8">
     
     <!-- EN-TÊTE ET ACTIONS -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
       <div class="flex items-center gap-3">
         <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
           <i class="fa-solid fa-chart-line text-xl"></i>
@@ -35,17 +44,26 @@
         </div>
       </div>
       
-      <div class="flex flex-wrap items-center gap-2">
-        <button onclick="exportCSV()" class="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-2 transition shadow-sm">
-          <i class="fa-solid fa-file-excel text-emerald-600"></i> Export CSV
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <button onclick="exportCSV()" class="flex-1 md:flex-none justify-center bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-sm">
+          <i class="fa-solid fa-file-excel text-emerald-600"></i> <span class="hidden sm:inline">Export</span>CSV
         </button>
-        <button onclick="exportJSON()" class="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-2 transition shadow-sm">
-          <i class="fa-solid fa-download text-blue-600"></i> Sauvegarder
+        <button onclick="exportJSON()" class="flex-1 md:flex-none justify-center bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-sm">
+          <i class="fa-solid fa-download text-blue-600"></i> <span class="hidden sm:inline">Sauvegarder</span><span class="sm:hidden">Save</span>
         </button>
-        <label class="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 cursor-pointer flex items-center gap-2 transition shadow-sm">
+        <label class="flex-1 md:flex-none justify-center bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 cursor-pointer flex items-center gap-1.5 transition shadow-sm">
           <i class="fa-solid fa-upload text-amber-600"></i> Importer
           <input type="file" id="importFile" accept=".json" onchange="importJSON(event)" class="hidden">
         </label>
+      </div>
+    </div>
+
+    <!-- ALERTE DE SAUVEGARDE -->
+    <div id="backupBanner" class="hidden items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold px-4 py-3 rounded-xl">
+      <span id="backupBannerText" class="flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="exportJSON()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg transition">Sauvegarder maintenant</button>
+        <button onclick="snoozeBackupBanner()" class="text-amber-700 hover:text-amber-900 px-2 py-1.5 font-medium">Plus tard</button>
       </div>
     </div>
 
@@ -136,10 +154,10 @@
       </div>
     </div>
 
-    <!-- BILAN QUOTIDIEN -->
+    <!-- BILAN QUOTIDIEN FOOTBALL -->
     <div id="dailyFootSection" class="card p-5 space-y-3">
       <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <h3 id="dailyStatsTitle" class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
+        <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Foot IA)
         </h3>
         <span class="text-[10px] text-slate-400 font-medium">Récapitulatif compact des résultats journaliers</span>
@@ -320,38 +338,46 @@
           </button>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex flex-wrap items-center gap-2 text-xs">
-            <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
-              <button onclick="setQuickFilter('ALL')" id="btnFilterAll" class="px-3 py-1 rounded-lg transition bg-white text-slate-800 shadow-sm font-bold">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2 text-xs overflow-x-auto">
+            <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 shrink-0">
+              <button onclick="setQuickFilter('ALL')" id="btnFilterAll" class="px-3 py-1 rounded-lg transition bg-white text-slate-800 shadow-sm font-bold whitespace-nowrap">
                 Tous (<span id="countAll">0</span>)
               </button>
-              <button onclick="setQuickFilter('Pending')" id="btnFilterPending" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium">
+              <button onclick="setQuickFilter('Pending')" id="btnFilterPending" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
                 ⏳ En cours (<span id="countPending">0</span>)
               </button>
-              <button onclick="setQuickFilter('Settled')" id="btnFilterSettled" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium">
+              <button onclick="setQuickFilter('Settled')" id="btnFilterSettled" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
                 ✅ Terminés (<span id="countSettled">0</span>)
               </button>
             </div>
           </div>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <div class="relative flex-1 sm:w-44">
+            <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
               <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher..." class="input-field text-xs pl-8 py-1.5 w-full">
             </div>
             
-            <select id="filterPeriod" onchange="render()" class="input-field text-xs py-1.5">
+            <select id="filterPeriod" onchange="onFilterPeriodChange()" class="input-field text-xs py-1.5 shrink-0">
               <option value="ALL">Toutes les dates</option>
               <option value="TODAY">Aujourd'hui</option>
               <option value="TOMORROW">Demain</option>
               <option value="THIS_WEEK">Cette semaine</option>
               <option value="THIS_MONTH">Ce mois-ci</option>
+              <option value="CUSTOM">Plage personnalisée...</option>
             </select>
+          </div>
+
+          <div id="customDateRange" class="hidden flex items-center gap-2 w-full sm:w-auto">
+            <input type="date" id="filterDateFrom" onchange="render()" class="input-field text-xs py-1.5">
+            <span class="text-xs text-slate-400 font-medium">→</span>
+            <input type="date" id="filterDateTo" onchange="render()" class="input-field text-xs py-1.5">
           </div>
         </div>
 
-        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <!-- VUE TABLEAU (écrans moyens et larges) -->
+        <div class="hidden md:block overflow-x-auto border border-slate-200 rounded-xl">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200 font-bold tracking-wider">
               <tr>
@@ -367,6 +393,9 @@
             <tbody id="betsTbody" class="divide-y divide-slate-100 font-medium"></tbody>
           </table>
         </div>
+
+        <!-- VUE CARTES (mobile) -->
+        <div id="betsCardsMobile" class="md:hidden space-y-2.5"></div>
       </div>
 
     </div>
@@ -497,7 +526,6 @@
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari Foot`;
 
         document.getElementById('dailyFootSection').classList.remove('hidden');
-        document.getElementById('dailyStatsTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Foot IA)`;
 
         document.getElementById('labelMatch').textContent = "Match / Affiche";
         document.getElementById('labelComp').textContent = "Championnat";
@@ -508,8 +536,7 @@
         document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Tennis";
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Ajouter un Pari Tennis (IA)`;
 
-        document.getElementById('dailyFootSection').classList.remove('hidden');
-        document.getElementById('dailyStatsTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-amber-500"></i> Bilan Quotidien Jour par Jour (Tennis IA)`;
+        document.getElementById('dailyFootSection').classList.add('hidden');
 
         document.getElementById('labelMatch').textContent = "Affiche (Joueur A vs Joueur B)";
         document.getElementById('labelComp').textContent = "Tournoi / Circuit";
@@ -564,13 +591,84 @@
     }
 
     function exportJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const filename = `pronotracker_${new Date().toISOString().split('T')[0]}.json`;
+      const dataStr = JSON.stringify(state, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+
+      // Sur iPhone/iPad, la méthode "lien de téléchargement" ne fonctionne pas de façon fiable.
+      // On utilise le menu de partage natif (Enregistrer dans Fichiers, AirDrop, etc.) quand il est disponible.
+      let file = null;
+      try { file = new File([blob], filename, { type: 'application/json' }); } catch (e) {}
+
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: 'Sauvegarde PronoTracker',
+          text: 'Export de mes pronostics'
+        }).then(() => {
+          localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
+          updateBackupBanner();
+        }).catch(err => {
+          if (err && err.name !== 'AbortError') {
+            downloadBlobFallback(blob, filename);
+          }
+        });
+      } else {
+        downloadBlobFallback(blob, filename);
+      }
+    }
+
+    function downloadBlobFallback(blob, filename) {
+      const url = URL.createObjectURL(blob);
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pronotracker_${new Date().toISOString().split('T')[0]}.json`);
+      downloadAnchor.href = url;
+      downloadAnchor.download = filename;
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+      localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
+      updateBackupBanner();
+    }
+
+    function snoozeBackupBanner() {
+      localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString());
+      document.getElementById('backupBanner').classList.add('hidden');
+      document.getElementById('backupBanner').classList.remove('flex');
+    }
+
+    function updateBackupBanner() {
+      const banner = document.getElementById('backupBanner');
+      const textEl = document.getElementById('backupBannerText');
+      const lastBackup = localStorage.getItem('pronotracker_lastBackup');
+      const snooze = localStorage.getItem('pronotracker_backupSnooze');
+      const totalBets = (state.football || []).length + (state.tennis || []).length;
+
+      if (totalBets === 0) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        return;
+      }
+
+      const daysSince = (isoStr) => (Date.now() - new Date(isoStr).getTime()) / (1000 * 60 * 60 * 24);
+
+      if (snooze && daysSince(snooze) < 1) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        return;
+      }
+
+      let daysSinceBackup = lastBackup ? daysSince(lastBackup) : Infinity;
+
+      if (daysSinceBackup >= 3) {
+        const label = lastBackup ? `il y a ${Math.floor(daysSinceBackup)} jour(s)` : "jamais effectuée";
+        textEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Dernière sauvegarde : <strong>${label}</strong>. Tes données sont uniquement stockées sur cet appareil — pense à exporter régulièrement pour ne rien perdre.`;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }
     }
 
     function exportCSV() {
@@ -580,14 +678,19 @@
           csv += `"${sp}","${b.id}","${b.source || 'AI'}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}"\n`;
         });
       });
+      const filename = `pronotracker_${new Date().toISOString().split('T')[0]}.csv`;
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `pronotracker_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      let file = null;
+      try { file = new File([blob], filename, { type: 'text/csv' }); } catch (e) {}
+
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Export CSV PronoTracker' }).catch(() => {
+          downloadBlobFallback(blob, filename);
+        });
+      } else {
+        downloadBlobFallback(blob, filename);
+      }
     }
 
     function normalizeMarketLabel(text, sport, fallback) {
@@ -961,10 +1064,18 @@
       }
     }
 
+    function onFilterPeriodChange() {
+      const period = document.getElementById('filterPeriod').value;
+      document.getElementById('customDateRange').classList.toggle('hidden', period !== 'CUSTOM');
+      render();
+    }
+
     function getFilteredAndSortedBets() {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase();
       const period = document.getElementById('filterPeriod').value;
+      const dateFrom = document.getElementById('filterDateFrom')?.value || '';
+      const dateTo = document.getElementById('filterDateTo')?.value || '';
       
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
@@ -994,6 +1105,10 @@
         } else if (period === 'THIS_WEEK') {
           const betDate = new Date(b.date);
           matchPeriod = Math.ceil(Math.abs(now - betDate) / (1000 * 60 * 60 * 24)) <= 7;
+        } else if (period === 'CUSTOM') {
+          const betDateStr = b.date || '';
+          if (dateFrom && betDateStr < dateFrom) matchPeriod = false;
+          if (dateTo && betDateStr > dateTo) matchPeriod = false;
         }
 
         return matchSearch && matchQuick && matchPeriod;
@@ -1035,13 +1150,15 @@
     }
 
     function renderDailyFootStats() {
+      if (currentSport !== 'football') return;
+      
       const tbody = document.getElementById('dailyStatsTbody');
       tbody.innerHTML = '';
       
-      const sportBets = state[currentSport] || [];
+      const footBets = state.football || [];
       const dailyMap = {};
 
-      sportBets.forEach(b => {
+      footBets.forEach(b => {
         if (!b.date) return;
         const d = b.date;
         if (!dailyMap[d]) {
@@ -1204,10 +1321,13 @@
     }
 
     function render() {
+      updateBackupBanner();
       const currentList = state[currentSport] || [];
       const filteredBets = getFilteredAndSortedBets();
       const tbody = document.getElementById('betsTbody');
+      const cardsMobile = document.getElementById('betsCardsMobile');
       tbody.innerHTML = '';
+      cardsMobile.innerHTML = '';
 
       let totalBets = currentList.length, wonBets = 0, lostBets = 0, pendingBets = 0, settledBets = 0, profit = 0, totalStake = 0, oddsSum = 0;
 
@@ -1250,9 +1370,40 @@
           </td>
         `;
         tbody.appendChild(tr);
+
+        const card = document.createElement('div');
+        card.className = 'card p-3.5 space-y-2.5';
+        card.innerHTML = `
+          <div class="flex justify-between items-start gap-2">
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-slate-900 truncate">${b.match || ''}</div>
+              <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+            </div>
+            ${statusBadge}
+          </div>
+          <div class="text-xs font-medium text-slate-800 bg-slate-50 rounded-lg px-2.5 py-1.5">
+            ${b.prono || ''} <span class="text-slate-400 font-normal">(${b.market || ''})</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-3 text-xs">
+              <span class="font-black text-blue-600">${(b.odds || 1).toFixed(2)}</span>
+              <span class="font-bold text-slate-700">${b.stake || 0} €</span>
+            </div>
+            <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
+              <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
+              <button onclick="openEditModal(${b.id})" title="Modifier" class="w-8 h-8 flex items-center justify-center bg-white text-slate-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-8 h-8 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+          </div>
+        `;
+        cardsMobile.appendChild(card);
       });
 
-      if (filteredBets.length === 0) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
+      if (filteredBets.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
+        cardsMobile.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Aucun pari dans cette vue.</div>`;
+      }
 
       const roi = totalStake > 0 ? (profit / totalStake) * 100 : 0;
       const avgOdds = settledBets > 0 ? (oddsSum / settledBets) : 0;
