@@ -156,11 +156,11 @@
       </div>
     </div>
 
-    <!-- BILAN QUOTIDIEN FOOTBALL -->
-    <div id="dailyFootSection" class="card p-5 space-y-3">
+    <!-- BILAN QUOTIDIEN -->
+    <div id="dailySection" class="card p-5 space-y-3">
       <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Foot IA)
+        <h3 id="dailySectionTitle" class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour
         </h3>
         <span class="text-[10px] text-slate-400 font-medium">Récapitulatif compact des résultats journaliers</span>
       </div>
@@ -574,7 +574,7 @@
         document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Football";
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari Foot`;
 
-        document.getElementById('dailyFootSection').classList.remove('hidden');
+        document.getElementById('dailySectionTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Foot)`;
 
         document.getElementById('labelMatch').textContent = "Match / Affiche";
         document.getElementById('labelComp').textContent = "Championnat";
@@ -585,7 +585,7 @@
         document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Tennis";
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Ajouter un Pari Tennis (IA)`;
 
-        document.getElementById('dailyFootSection').classList.add('hidden');
+        document.getElementById('dailySectionTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Tennis)`;
 
         document.getElementById('labelMatch').textContent = "Affiche (Joueur A vs Joueur B)";
         document.getElementById('labelComp').textContent = "Tournoi / Circuit";
@@ -1198,16 +1198,14 @@
       return { type: lastStatus, count: count };
     }
 
-    function renderDailyFootStats() {
-      if (currentSport !== 'football') return;
-      
+    function renderDailyStats() {
       const tbody = document.getElementById('dailyStatsTbody');
       tbody.innerHTML = '';
       
-      const footBets = state.football || [];
+      const sportBets = state[currentSport] || [];
       const dailyMap = {};
 
-      footBets.forEach(b => {
+      sportBets.forEach(b => {
         if (!b.date) return;
         const d = b.date;
         if (!dailyMap[d]) {
@@ -1469,7 +1467,7 @@
       roiEl.className = 'text-xl font-black ' + (roi > 0 ? 'text-emerald-600' : roi < 0 ? 'text-rose-600' : 'text-slate-800');
 
       renderPerformanceStats();
-      renderDailyFootStats();
+      renderDailyStats();
       renderGroupedStats();
       renderChart();
     }
