@@ -116,15 +116,15 @@
     <div class="card p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-extrabold flex items-center gap-2 text-slate-800">
-          <i id="perfIcon" class="fa-solid fa-robot text-orange-500"></i> Performance IA
+          <i id="perfIcon" class="fa-solid fa-robot"></i> Performance IA
         </h3>
         <span class="text-xs text-slate-400 font-medium">Paris terminés du sport actif</span>
       </div>
 
-      <div id="perfCard" class="bg-orange-50/50 border border-orange-100 p-5 rounded-2xl space-y-4">
+      <div id="perfCard" class="border p-5 rounded-2xl space-y-4">
         <div class="flex justify-between items-start">
           <div>
-            <span id="perfBadge" class="bg-orange-600 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide">🤖 Pronos IA</span>
+            <span id="perfBadge" class="text-white text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide">🤖 Pronos IA</span>
             <div id="perfStreak" class="mt-2 text-xs font-bold"></div>
           </div>
           <div class="flex gap-6">
@@ -138,7 +138,7 @@
             </div>
           </div>
         </div>
-        <div id="perfDivider" class="grid grid-cols-3 gap-2 pt-2 border-t border-orange-100/60 text-center max-w-lg">
+        <div id="perfDivider" class="grid grid-cols-3 gap-2 pt-2 border-t text-center max-w-lg">
           <div>
             <span class="text-[10px] font-semibold text-slate-500 block">Réussite</span>
             <span id="perfWinRate" class="text-sm font-extrabold text-slate-800">0 %</span>
@@ -181,7 +181,7 @@
 
     <!-- STATISTIQUES DÉTAILLÉES -->
     <div class="space-y-3">
-      <h2 id="detailedStatsTitle" class="text-xs font-extrabold uppercase tracking-wider text-orange-700 flex items-center gap-2">
+      <h2 id="detailedStatsTitle" class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-2">
         <i class="fa-solid fa-robot"></i> Statistiques Détaillées (IA)
       </h2>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -234,7 +234,7 @@
           <i class="fa-solid fa-chart-area text-blue-600"></i> Évolution Cumulée du Capital (€)
         </h3>
         <div id="chartLegend" class="flex items-center gap-4 text-xs font-bold">
-          <span id="chartLegendLabel" class="flex items-center gap-1.5 text-orange-600"><span id="chartLegendDot" class="w-2.5 h-2.5 bg-orange-500 rounded-full inline-block"></span> 🤖 IA</span>
+          <span id="chartLegendLabel" class="flex items-center gap-1.5"><span id="chartLegendDot" class="w-2.5 h-2.5 rounded-full inline-block"></span> 🤖 IA</span>
         </div>
       </div>
       <div class="h-72 w-full">
@@ -252,13 +252,13 @@
         </h2>
         
         <!-- IMPORT UNIVERSEL IA -->
-        <div id="quickAddBox" class="p-3.5 bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl space-y-2">
-          <label id="quickAddLabel" class="block text-xs font-bold text-orange-900">
+        <div id="quickAddBox" class="p-3.5 border rounded-xl space-y-2">
+          <label id="quickAddLabel" class="block text-xs font-bold">
             <span>⚡ Multi-Import Texte</span>
           </label>
           <textarea id="rawText" rows="3" class="input-field w-full text-xs" placeholder="Ex: 06/08/2026 | Équipe A - Équipe B | Compétition | Marché | Pronostic | 1.67"></textarea>
-          <p id="quickAddHint" class="text-[10px] text-orange-800/70 leading-snug">Format : Date | Match | Compétition | Marché | Pronostic | [Mise optionnelle] | Cote</p>
-          <button id="quickAddBtn" type="button" onclick="parseAndAddMultipleBetsIA()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5">
+          <p id="quickAddHint" class="text-[10px] leading-snug">Format : Date | Match | Compétition | Marché | Pronostic | [Mise optionnelle] | Cote</p>
+          <button id="quickAddBtn" type="button" onclick="parseAndAddMultipleBetsIA()" class="w-full text-white font-bold py-2 px-3 rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-robot"></i> Analyser & Ajouter
           </button>
         </div>
@@ -516,70 +516,48 @@
 
     function applyTheme(sport) {
       const isTennis = sport === 'tennis';
-      // Onglets actifs
-      document.getElementById('tabFoot').classList.toggle('theme-football', !isTennis);
-      document.getElementById('tabFoot').classList.remove('theme-tennis');
-      document.getElementById('tabTennis').classList.toggle('theme-tennis', isTennis);
-      document.getElementById('tabTennis').classList.remove('theme-football');
 
       const theme = isTennis ? {
-        icon: 'text-amber-500', title: 'text-amber-700',
-        cardBg: 'bg-amber-50/50', cardBorder: 'border-amber-100', cardDivider: 'border-amber-100/60',
-        badge: 'bg-amber-600',
-        boxFrom: 'from-amber-50', boxTo: 'to-orange-50', boxBorder: 'border-amber-200', boxText: 'text-amber-900', boxHint: 'text-amber-800/70',
-        btnBg: 'bg-amber-600', btnHover: 'hover:bg-amber-700', btnShadow: 'shadow-amber-600/20',
-        dot: 'bg-amber-500', legendText: 'text-amber-600'
+        main: '#d97706', mainHover: '#b45309', iconColor: '#f59e0b',
+        cardBg: 'rgba(255, 251, 235, 0.6)', cardBorder: '#fef3c7', dividerBorder: 'rgba(254, 243, 199, 0.6)',
+        badgeBg: '#d97706',
+        boxFrom: '#fffbeb', boxTo: '#fff7ed', boxBorder: '#fde68a', boxText: '#78350f', boxHint: 'rgba(146, 64, 14, 0.7)',
+        shadowRgb: '217, 119, 6'
       } : {
-        icon: 'text-blue-600', title: 'text-blue-700',
-        cardBg: 'bg-blue-50/50', cardBorder: 'border-blue-100', cardDivider: 'border-blue-100/60',
-        badge: 'bg-blue-600',
-        boxFrom: 'from-blue-50', boxTo: 'to-sky-50', boxBorder: 'border-blue-200', boxText: 'text-blue-900', boxHint: 'text-blue-800/70',
-        btnBg: 'bg-blue-600', btnHover: 'hover:bg-blue-700', btnShadow: 'shadow-blue-600/20',
-        dot: 'bg-blue-500', legendText: 'text-blue-600'
+        main: '#2563eb', mainHover: '#1d4ed8', iconColor: '#2563eb',
+        cardBg: 'rgba(239, 246, 255, 0.6)', cardBorder: '#dbeafe', dividerBorder: 'rgba(219, 234, 254, 0.6)',
+        badgeBg: '#2563eb',
+        boxFrom: '#eff6ff', boxTo: '#f0f9ff', boxBorder: '#bfdbfe', boxText: '#1e3a8a', boxHint: 'rgba(30, 64, 175, 0.7)',
+        shadowRgb: '37, 99, 235'
       };
 
-      // Toutes les variantes possibles (football / tennis / orange par défaut) à retirer avant d'appliquer le thème actif
-      const reset = (el, removeAll, add) => {
+      const setStyle = (id, styles) => {
+        const el = document.getElementById(id);
         if (!el) return;
-        removeAll.forEach(cl => el.classList.remove(cl));
-        add.forEach(cl => el.classList.add(cl));
+        Object.assign(el.style, styles);
       };
 
-      reset(document.getElementById('perfIcon'),
-        ['text-orange-500', 'text-blue-600', 'text-amber-500'], [theme.icon]);
+      // Onglet actif (l'onglet inactif retrouve sa couleur par défaut)
+      setStyle('tabFoot', { color: !isTennis ? theme.main : '' });
+      setStyle('tabTennis', { color: isTennis ? theme.main : '' });
 
-      reset(document.getElementById('perfCard'),
-        ['bg-orange-50/50', 'border-orange-100', 'bg-blue-50/50', 'border-blue-100', 'bg-amber-50/50', 'border-amber-100'],
-        [theme.cardBg, theme.cardBorder]);
+      setStyle('perfIcon', { color: theme.iconColor });
+      setStyle('perfCard', { backgroundColor: theme.cardBg, borderColor: theme.cardBorder });
+      setStyle('perfDivider', { borderColor: theme.dividerBorder });
+      setStyle('perfBadge', { backgroundColor: theme.badgeBg });
+      setStyle('detailedStatsTitle', { color: theme.main });
+      setStyle('quickAddBox', { backgroundImage: `linear-gradient(to bottom right, ${theme.boxFrom}, ${theme.boxTo})`, borderColor: theme.boxBorder });
+      setStyle('quickAddLabel', { color: theme.boxText });
+      setStyle('quickAddHint', { color: theme.boxHint });
+      setStyle('quickAddBtn', { backgroundColor: theme.main, boxShadow: `0 4px 10px rgba(${theme.shadowRgb}, 0.25)` });
+      setStyle('chartLegendDot', { backgroundColor: theme.main });
+      setStyle('chartLegendLabel', { color: theme.main });
 
-      reset(document.getElementById('perfDivider'),
-        ['border-orange-100/60', 'border-blue-100/60', 'border-amber-100/60'], [theme.cardDivider]);
-
-      reset(document.getElementById('perfBadge'),
-        ['bg-orange-600', 'bg-blue-600', 'bg-amber-600'], [theme.badge]);
-
-      reset(document.getElementById('detailedStatsTitle'),
-        ['text-orange-700', 'text-blue-700', 'text-amber-700'], [theme.title]);
-
-      reset(document.getElementById('quickAddBox'),
-        ['from-orange-50', 'to-amber-50', 'border-orange-200', 'from-blue-50', 'to-sky-50', 'border-blue-200', 'from-amber-50', 'to-orange-50', 'border-amber-200'],
-        [theme.boxFrom, theme.boxTo, theme.boxBorder]);
-
-      reset(document.getElementById('quickAddLabel'),
-        ['text-orange-900', 'text-blue-900', 'text-amber-900'], [theme.boxText]);
-
-      reset(document.getElementById('quickAddHint'),
-        ['text-orange-800/70', 'text-blue-800/70', 'text-amber-800/70'], [theme.boxHint]);
-
-      reset(document.getElementById('quickAddBtn'),
-        ['bg-orange-600', 'hover:bg-orange-700', 'shadow-orange-600/20', 'bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-600/20', 'bg-amber-600', 'hover:bg-amber-700', 'shadow-amber-600/20'],
-        [theme.btnBg, theme.btnHover, theme.btnShadow]);
-
-      reset(document.getElementById('chartLegendDot'),
-        ['bg-orange-500', 'bg-blue-500', 'bg-amber-500'], [theme.dot]);
-
-      reset(document.getElementById('chartLegendLabel'),
-        ['text-orange-600', 'text-blue-600', 'text-amber-600'], [theme.legendText]);
+      const btn = document.getElementById('quickAddBtn');
+      if (btn) {
+        btn.onmouseenter = () => { btn.style.backgroundColor = theme.mainHover; };
+        btn.onmouseleave = () => { btn.style.backgroundColor = theme.main; };
+      }
     }
 
     function switchSport(sport) {
