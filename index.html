@@ -355,6 +355,11 @@
             </div>
           </div>
 
+          <div id="compFilterBanner" class="hidden items-center gap-2 w-full sm:w-auto bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg px-3 py-1.5">
+            <i class="fa-solid fa-filter"></i>
+            <span id="compFilterLabel"></span>
+            <button onclick="toggleCompFilter(currentCompFilter)" class="ml-auto text-blue-500 hover:text-blue-800"><i class="fa-solid fa-xmark"></i></button>
+          </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
@@ -480,6 +485,7 @@
     
     let chartInstance = null;
     let currentQuickFilter = 'ALL';
+    let currentCompFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
     let lastDeletedBet = null;
     let undoTimeout = null;
@@ -562,6 +568,7 @@
 
     function switchSport(sport) {
       currentSport = sport;
+      currentCompFilter = null;
       applyTheme(sport);
       document.getElementById('tabFoot').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'football' ? 'active' : ''}`;
       document.getElementById('tabTennis').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'tennis' ? 'active' : ''}`;
@@ -625,6 +632,10 @@
               b.source = 'AI';
               if (!b.status) b.status = 'Pending';
               if (!b.type) b.type = 'Single';
+              if (typeof b.comp === 'string') b.comp = b.comp.trim();
+              if (typeof b.match === 'string') b.match = b.match.trim();
+              if (typeof b.market === 'string') b.market = b.market.trim();
+              if (typeof b.prono === 'string') b.prono = b.prono.trim();
             });
           });
 
@@ -789,6 +800,9 @@
         let str = line.trim();
         if (!str) return;
 
+        // 0. Retrait des pipes de début/fin de ligne (ex: format tableau "|champ1|champ2|...|")
+        str = str.replace(/^\|+\s*/, '').replace(/\s*\|+$/, '');
+
         // 1. Extraction de la date (JJ/MM/AAAA)
         let formattedDate = new Date().toISOString().split('T')[0];
         const dateMatch = str.match(/^(\d{2}[\/\.-]\d{2}[\/\.-]\d{4})/);
@@ -827,13 +841,15 @@
             }
 
             // Champ mise optionnel en dernière position (ex: ... | Pronostic | Mise)
+            // Dès qu'il y a 5+ champs, le dernier est toujours traité comme "mise"
+            // (même si c'est un placeholder du type "-" signifiant "pas de mise précisée")
             let pronoVal = parts[parts.length - 1];
             let stakeVal = defaultStake;
             if (parts.length >= 5) {
+              pronoVal = parts[parts.length - 2];
               const lastAsNum = parseFloat(parts[parts.length - 1].replace(',', '.').replace('€', '').trim());
               if (!isNaN(lastAsNum) && /^[\d.,]+\s*€?$/.test(parts[parts.length - 1].trim())) {
                 stakeVal = lastAsNum;
-                pronoVal = parts[parts.length - 2];
               }
             }
 
@@ -966,7 +982,7 @@
         date: document.getElementById('dateInput').value,
         type: document.getElementById('typeInput').value,
         match: document.getElementById('matchInput').value,
-        comp: document.getElementById('compInput').value,
+        comp: document.getElementById('compInput').value.trim(),
         market: document.getElementById('marketInput').value,
         prono: document.getElementById('pronoInput').value,
         odds: parseFloat(document.getElementById('oddsInput').value),
@@ -1034,7 +1050,7 @@
         bet.source = 'AI';
         bet.date = document.getElementById('editDate').value;
         bet.match = document.getElementById('editMatch').value;
-        bet.comp = document.getElementById('editComp').value;
+        bet.comp = document.getElementById('editComp').value.trim();
         bet.market = document.getElementById('editMarket').value;
         bet.prono = document.getElementById('editProno').value;
         bet.odds = parseFloat(document.getElementById('editOdds').value);
@@ -1160,7 +1176,13 @@
           if (dateTo && betDateStr > dateTo) matchPeriod = false;
         }
 
-        return matchSearch && matchQuick && matchPeriod;
+        let matchComp = true;
+        if (currentCompFilter) {
+          const bCompKey = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié').trim();
+          matchComp = bCompKey === currentCompFilter;
+        }
+
+        return matchSearch && matchQuick && matchPeriod && matchComp;
       });
 
       filtered.sort((a, b) => {
@@ -1335,7 +1357,7 @@
         });
       });
 
-      function populateTable(tbodyId, mapData) {
+      function populateTable(tbodyId, mapData, clickable) {
         const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -1349,10 +1371,15 @@
             const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
             const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
             const profClass = item.profit > 0 ? 'text-emerald-600 font-extrabold' : item.profit < 0 ? 'text-rose-600 font-extrabold' : 'text-slate-700';
+            const isActive = clickable && currentCompFilter === k;
+            const rowClasses = clickable
+              ? `hover:bg-blue-50 transition cursor-pointer ${isActive ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : ''}`
+              : 'hover:bg-slate-50 transition';
+            const rowAttrs = clickable ? `onclick="toggleCompFilter('${k.replace(/'/g, "\\'")}')"` : '';
 
             tbody.innerHTML += `
-              <tr class="hover:bg-slate-50 transition">
-                <td class="p-2.5 text-left font-bold text-slate-800">${k}</td>
+              <tr class="${rowClasses}" ${rowAttrs}>
+                <td class="p-2.5 text-left font-bold text-slate-800">${k}${isActive ? ' <span class=\"text-blue-600\">●</span>' : ''}</td>
                 <td class="p-2.5">${item.total}</td>
                 <td class="p-2.5">${winRate} %</td>
                 <td class="p-2.5 ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
@@ -1363,12 +1390,32 @@
         }
       }
 
-      populateTable('compStatsTbody', compMap);
-      populateTable('marketStatsTbody', marketMap);
+      populateTable('compStatsTbody', compMap, true);
+      populateTable('marketStatsTbody', marketMap, false);
+    }
+
+    function toggleCompFilter(key) {
+      currentCompFilter = (currentCompFilter === key) ? null : key;
+      render();
+      renderGroupedStats();
+      const list = document.getElementById('betsTbody');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function render() {
       updateBackupBanner();
+
+      const compFilterBanner = document.getElementById('compFilterBanner');
+      const compFilterLabel = document.getElementById('compFilterLabel');
+      if (currentCompFilter) {
+        compFilterBanner.classList.remove('hidden');
+        compFilterBanner.classList.add('flex');
+        compFilterLabel.textContent = currentCompFilter;
+      } else {
+        compFilterBanner.classList.add('hidden');
+        compFilterBanner.classList.remove('flex');
+      }
+
       const currentList = state[currentSport] || [];
       const filteredBets = getFilteredAndSortedBets();
       const tbody = document.getElementById('betsTbody');
