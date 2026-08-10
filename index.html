@@ -388,7 +388,7 @@
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200 font-bold tracking-wider">
               <tr>
-                <th class="p-3 text-center whitespace-nowrap">N°</th>
+                <th onclick="toggleSort('betNum')" class="p-3 text-center sortable whitespace-nowrap">N° <span id="sort-betNum"></span></th>
                 <th onclick="toggleSort('date')" class="p-3 sortable whitespace-nowrap">Date <span id="sort-date">▼</span></th>
                 <th onclick="toggleSort('match')" class="p-3 sortable">Match <span id="sort-match"></span></th>
                 <th class="p-3">Pronostic</th>
@@ -1136,6 +1136,18 @@
       render();
     }
 
+    function filterByBetNumber(num) {
+      const input = document.getElementById('searchInput');
+      if (input.value.trim() === ('#' + num)) {
+        input.value = '';
+      } else {
+        input.value = '#' + num;
+      }
+      render();
+      const list = document.getElementById('betsTbody');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function getBetChartNumbers() {
       const sortedBets = [...(state[currentSport] || [])].reverse();
       let step = 1;
@@ -1210,6 +1222,14 @@
           let matchA = normalizeMatchName(a.match);
           let matchB = normalizeMatchName(b.match);
           return matchA.localeCompare(matchB);
+        } else if (currentSort.field === 'betNum') {
+          // Les paris "En cours" (sans numéro) sont toujours renvoyés en dernier, quel que soit le sens du tri
+          const numA = chartNumbers[a.id];
+          const numB = chartNumbers[b.id];
+          if (numA === undefined && numB === undefined) return 0;
+          if (numA === undefined) return 1;
+          if (numB === undefined) return -1;
+          return currentSort.dir === 'asc' ? numA - numB : numB - numA;
         } else {
           let valA = a[currentSort.field] || '';
           let valB = b[currentSort.field] || '';
@@ -1461,7 +1481,7 @@
 
         const betNum = chartNumbers[b.id];
         const numBadge = betNum
-          ? `<span class="font-black text-slate-500">#${betNum}</span>`
+          ? `<span onclick="filterByBetNumber(${betNum})" class="cursor-pointer font-black text-slate-500 hover:text-blue-600 hover:underline" title="Filtrer sur ce pari">#${betNum}</span>`
           : `<span class="text-slate-300">–</span>`;
 
         const tr = document.createElement('tr');
@@ -1599,6 +1619,15 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements.length > 0) {
+              const idx = elements[0].index;
+              if (idx > 0) filterByBetNumber(idx);
+            }
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length > 0 && elements[0].index > 0 ? 'pointer' : 'default';
+          },
           plugins: {
             legend: { display: false }
           },
