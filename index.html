@@ -363,7 +363,7 @@
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-              <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher..." class="input-field text-xs pl-8 py-1.5 w-full">
+              <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher... (ou #12)" class="input-field text-xs pl-8 py-1.5 w-full">
             </div>
             
             <select id="filterPeriod" onchange="onFilterPeriodChange()" class="input-field text-xs py-1.5 shrink-0">
@@ -388,6 +388,7 @@
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200 font-bold tracking-wider">
               <tr>
+                <th class="p-3 text-center whitespace-nowrap">N°</th>
                 <th onclick="toggleSort('date')" class="p-3 sortable whitespace-nowrap">Date <span id="sort-date">▼</span></th>
                 <th onclick="toggleSort('match')" class="p-3 sortable">Match <span id="sort-match"></span></th>
                 <th class="p-3">Pronostic</th>
@@ -915,7 +916,7 @@
         }
 
         let comp = currentSport === 'tennis' ? 'ATP Montréal (M1000)' : 'Autre';
-        const compMatch = str.match(/(Ligue\s+Europa|Europa\s+League|Ligue\s+des\s+Champions|Champions\s+League|Ligue\s+1|Premier\s+League|La\s+Liga|Serie\s+A|Bundesliga|ATP[^\s|]+(?:\s+[^\s|]+)*|WTA[^\s|]+(?:\s+[^\s|]+)*|Challenger[^\s|]*|Grand\s+Chelem[^\s|]*|Roland\s+Garros|Wimbledon|US\s+Open|Australian\s+Open)/i);
+        const compMatch = str.match(/(Ligue\s+Europa\s+Conf[ée]rence|Europa\s+Conf[ée]rence\s+League|Conf[ée]rence\s+League|Ligue\s+Conf[ée]rence|Ligue\s+Europa|Europa\s+League|Ligue\s+des\s+Champions|Champions\s+League|Ligue\s+1|Premier\s+League|La\s+Liga|Serie\s+A|Bundesliga|ATP[^\s|]+(?:\s+[^\s|]+)*|WTA[^\s|]+(?:\s+[^\s|]+)*|Challenger[^\s|]*|Grand\s+Chelem[^\s|]*|Roland\s+Garros|Wimbledon|US\s+Open|Australian\s+Open)/i);
         
         if (compMatch) {
           comp = compMatch[0].trim();
@@ -1135,9 +1136,23 @@
       render();
     }
 
+    function getBetChartNumbers() {
+      const sortedBets = [...(state[currentSport] || [])].reverse();
+      let step = 1;
+      const map = {};
+      sortedBets.forEach(b => {
+        if (b.status === 'Pending') return;
+        map[b.id] = step++;
+      });
+      return map;
+    }
+
     function getFilteredAndSortedBets() {
       const currentList = state[currentSport] || [];
-      const search = document.getElementById('searchInput').value.toLowerCase();
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const chartNumbers = getBetChartNumbers();
+      const searchIsNumber = /^#?\d+$/.test(search);
+      const searchNum = searchIsNumber ? parseInt(search.replace('#', ''), 10) : null;
       const period = document.getElementById('filterPeriod').value;
       const dateFrom = document.getElementById('filterDateFrom')?.value || '';
       const dateTo = document.getElementById('filterDateTo')?.value || '';
@@ -1152,9 +1167,11 @@
       const currentMonthStr = now.toISOString().slice(0, 7);
 
       let filtered = currentList.filter(b => {
-        const matchSearch = (b.match || '').toLowerCase().includes(search) || 
-                            (b.prono || '').toLowerCase().includes(search) || 
-                            (b.comp || '').toLowerCase().includes(search);
+        const matchSearch = searchIsNumber
+          ? (chartNumbers[b.id] === searchNum)
+          : ((b.match || '').toLowerCase().includes(search) || 
+             (b.prono || '').toLowerCase().includes(search) || 
+             (b.comp || '').toLowerCase().includes(search));
         
         let matchQuick = true;
         if (currentQuickFilter === 'Pending') matchQuick = (b.status === 'Pending');
@@ -1435,14 +1452,22 @@
       document.getElementById('countPending').textContent = pendingBets;
       document.getElementById('countSettled').textContent = settledBets;
 
+      const chartNumbers = getBetChartNumbers();
+
       filteredBets.forEach((b) => {
         let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold inline-block">⏳ En cours</span>`;
         if (b.status === 'Won') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold inline-block">✅ Gagné</span>`;
         if (b.status === 'Lost') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-extrabold inline-block">❌ Perdu</span>`;
 
+        const betNum = chartNumbers[b.id];
+        const numBadge = betNum
+          ? `<span class="font-black text-slate-500">#${betNum}</span>`
+          : `<span class="text-slate-300">–</span>`;
+
         const tr = document.createElement('tr');
         tr.className = `hover:bg-slate-50 transition border-b border-slate-100`;
         tr.innerHTML = `
+          <td class="p-3 align-middle text-center text-xs whitespace-nowrap">${numBadge}</td>
           <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}</td>
           <td class="p-3 align-middle font-semibold text-slate-800">
             <div class="text-xs font-bold text-slate-900">${b.match || ''}</div>
@@ -1470,7 +1495,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
             <div class="min-w-0">
-              <div class="text-xs font-bold text-slate-900 truncate">${b.match || ''}</div>
+              <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
               <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
             </div>
             ${statusBadge}
@@ -1495,7 +1520,7 @@
       });
 
       if (filteredBets.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
         cardsMobile.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Aucun pari dans cette vue.</div>`;
       }
 
