@@ -556,6 +556,7 @@
     let lastDeletedBet = null;
     let undoTimeout = null;
     let importPreviewData = [];
+    let editingBetId = null;
 
     const footballMarkets = ["1N2", "BTTS", "Over/Under", "Buteur", "Mi-Temps", "Handicap", "Autre"];
     const tennisMarkets = ["Vainqueur 1/2", "Résultat Match", "Score Exact", "Handicap Jeux", "Handicap Sets", "Over/Under Jeux", "Nombre de Sets", "Autre"];
@@ -636,6 +637,7 @@
     function switchSport(sport) {
       currentSport = sport;
       currentCompFilter = null;
+      editingBetId = null;
       applyTheme(sport);
       document.getElementById('tabFoot').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'football' ? 'active' : ''}`;
       document.getElementById('tabTennis').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'tennis' ? 'active' : ''}`;
@@ -1233,6 +1235,44 @@
       }
     }
 
+    function escAttr(str) {
+      return (str || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function marketOptionsHtml(selected) {
+      const markets = currentSport === 'football' ? footballMarkets : tennisMarkets;
+      return markets.map(m => `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`).join('');
+    }
+
+    function startInlineEdit(id) {
+      editingBetId = id;
+      render();
+    }
+
+    function cancelInlineEdit() {
+      editingBetId = null;
+      render();
+    }
+
+    function saveInlineEdit(id, suffix) {
+      const bet = state[currentSport].find(b => b.id === id);
+      if (!bet) return;
+      const val = (name) => document.getElementById(`inline${name}${suffix}-${id}`).value;
+
+      bet.date = val('Date');
+      bet.match = val('Match');
+      bet.comp = val('Comp').trim();
+      bet.market = val('Market');
+      bet.prono = val('Prono');
+      const newOdds = parseFloat(val('Odds'));
+      const newStake = parseFloat(val('Stake'));
+      if (!isNaN(newOdds) && newOdds > 1) bet.odds = newOdds;
+      if (!isNaN(newStake) && newStake > 0) bet.stake = newStake;
+
+      editingBetId = null;
+      saveState();
+    }
+
     function setQuickFilter(filter) {
       currentQuickFilter = filter;
       const btnAll = document.getElementById('btnFilterAll');
@@ -1668,58 +1708,109 @@
           ? `<span onclick="filterByBetNumber(${betNum})" class="cursor-pointer font-black text-slate-500 hover:text-blue-600 hover:underline" title="Filtrer sur ce pari">#${betNum}</span>`
           : `<span class="text-slate-300">–</span>`;
 
+        const isEditing = (b.id === editingBetId);
+        const marketOpts = marketOptionsHtml(b.market);
+
         const tr = document.createElement('tr');
-        tr.className = `hover:bg-slate-50 transition border-b border-slate-100`;
-        tr.innerHTML = `
-          <td class="p-3 align-middle text-center text-xs whitespace-nowrap">${numBadge}</td>
-          <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}</td>
-          <td class="p-3 align-middle font-semibold text-slate-800">
-            <div class="text-xs font-bold text-slate-900">${b.match || ''}</div>
-            <div class="text-[10px] text-slate-400 font-medium">${b.comp || ''}</div>
-          </td>
-          <td class="p-3 align-middle font-medium text-slate-800">
-            ${b.prono || ''} <span class="text-slate-400 text-xs font-normal">(${b.market || ''})</span>
-          </td>
-          <td class="p-3 align-middle text-center font-black text-blue-600 text-xs bg-blue-50/30 rounded-lg">${(b.odds || 1).toFixed(2)}</td>
-          <td class="p-3 align-middle text-center font-bold text-slate-800 whitespace-nowrap">${b.stake || 0} €</td>
-          <td class="p-3 align-middle text-center">${statusBadge}</td>
-          <td class="p-3 align-middle text-right whitespace-nowrap">
-            <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
-              <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
-              <button onclick="openEditModal(${b.id})" title="Modifier" class="w-7 h-7 flex items-center justify-center bg-white text-slate-600 hover:text-blue-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
-            </div>
-          </td>
-        `;
+        tr.className = `hover:bg-slate-50 transition border-b border-slate-100 ${isEditing ? 'bg-blue-50/50' : ''}`;
+
+        if (isEditing) {
+          tr.innerHTML = `
+            <td class="p-2 align-top text-center text-xs whitespace-nowrap">${numBadge}</td>
+            <td class="p-2 align-top"><input type="date" id="inlineDate-${b.id}" value="${escAttr(b.date)}" class="input-field w-full text-xs py-1"></td>
+            <td class="p-2 align-top space-y-1">
+              <input type="text" id="inlineMatch-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs py-1 font-bold" placeholder="Match">
+              <input type="text" id="inlineComp-${b.id}" value="${escAttr(b.comp)}" class="input-field w-full text-xs py-1" placeholder="Compétition">
+            </td>
+            <td class="p-2 align-top space-y-1">
+              <input type="text" id="inlineProno-${b.id}" value="${escAttr(b.prono)}" class="input-field w-full text-xs py-1" placeholder="Pronostic">
+              <select id="inlineMarket-${b.id}" class="input-field w-full text-xs py-1">${marketOpts}</select>
+            </td>
+            <td class="p-2 align-top text-center"><input type="number" step="0.01" min="1.01" id="inlineOdds-${b.id}" value="${b.odds || 1}" class="input-field w-16 text-xs py-1 text-center font-black text-blue-600"></td>
+            <td class="p-2 align-top text-center"><input type="number" step="0.01" min="0.01" id="inlineStake-${b.id}" value="${b.stake || 0}" class="input-field w-16 text-xs py-1 text-center font-black"></td>
+            <td class="p-2 align-top text-center">${statusBadge}</td>
+            <td class="p-2 align-top text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button onclick="saveInlineEdit(${b.id}, '')" title="Enregistrer" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs bg-blue-600 text-white border-blue-600"><i class="fa-solid fa-check"></i></button>
+                <button onclick="cancelInlineEdit()" title="Annuler" class="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td class="p-3 align-middle text-center text-xs whitespace-nowrap">${numBadge}</td>
+            <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}</td>
+            <td class="p-3 align-middle font-semibold text-slate-800">
+              <div class="text-xs font-bold text-slate-900">${b.match || ''}</div>
+              <div class="text-[10px] text-slate-400 font-medium">${b.comp || ''}</div>
+            </td>
+            <td class="p-3 align-middle font-medium text-slate-800">
+              ${b.prono || ''} <span class="text-slate-400 text-xs font-normal">(${b.market || ''})</span>
+            </td>
+            <td class="p-3 align-middle text-center font-black text-blue-600 text-xs bg-blue-50/30 rounded-lg">${(b.odds || 1).toFixed(2)}</td>
+            <td class="p-3 align-middle text-center font-bold text-slate-800 whitespace-nowrap">${b.stake || 0} €</td>
+            <td class="p-3 align-middle text-center">${statusBadge}</td>
+            <td class="p-3 align-middle text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
+                <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="startInlineEdit(${b.id})" title="Modifier" class="w-7 h-7 flex items-center justify-center bg-white text-slate-600 hover:text-blue-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </td>
+          `;
+        }
         tbody.appendChild(tr);
 
         const card = document.createElement('div');
-        card.className = 'card p-3.5 space-y-2.5';
-        card.innerHTML = `
-          <div class="flex justify-between items-start gap-2">
-            <div class="min-w-0">
-              <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
-              <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+        card.className = 'card p-3.5 space-y-2.5' + (isEditing ? ' ring-2 ring-blue-300' : '');
+
+        if (isEditing) {
+          card.innerHTML = `
+            <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <input type="date" id="inlineDateM-${b.id}" value="${escAttr(b.date)}" class="input-field w-full text-xs">
+                <select id="inlineMarketM-${b.id}" class="input-field w-full text-xs">${marketOpts}</select>
+              </div>
+              <input type="text" id="inlineMatchM-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs font-bold" placeholder="Match">
+              <input type="text" id="inlineCompM-${b.id}" value="${escAttr(b.comp)}" class="input-field w-full text-xs" placeholder="Compétition">
+              <input type="text" id="inlinePronoM-${b.id}" value="${escAttr(b.prono)}" class="input-field w-full text-xs" placeholder="Pronostic">
+              <div class="grid grid-cols-2 gap-2">
+                <input type="number" step="0.01" id="inlineOddsM-${b.id}" value="${b.odds || 1}" class="input-field w-full text-xs" placeholder="Cote">
+                <input type="number" step="0.01" id="inlineStakeM-${b.id}" value="${b.stake || 0}" class="input-field w-full text-xs" placeholder="Mise">
+              </div>
+              <div class="flex justify-end gap-2 pt-1">
+                <button onclick="cancelInlineEdit()" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-bold text-xs">Annuler</button>
+                <button onclick="saveInlineEdit(${b.id}, 'M')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs">Enregistrer</button>
+              </div>
             </div>
-            ${statusBadge}
-          </div>
-          <div class="text-xs font-medium text-slate-800 bg-slate-50 rounded-lg px-2.5 py-1.5">
-            ${b.prono || ''} <span class="text-slate-400 font-normal">(${b.market || ''})</span>
-          </div>
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-3 text-xs">
-              <span class="font-black text-blue-600">${(b.odds || 1).toFixed(2)}</span>
-              <span class="font-bold text-slate-700">${b.stake || 0} €</span>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="flex justify-between items-start gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
+                <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+              </div>
+              ${statusBadge}
             </div>
-            <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
-              <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
-              <button onclick="openEditModal(${b.id})" title="Modifier" class="w-8 h-8 flex items-center justify-center bg-white text-slate-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-8 h-8 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
+            <div class="text-xs font-medium text-slate-800 bg-slate-50 rounded-lg px-2.5 py-1.5">
+              ${b.prono || ''} <span class="text-slate-400 font-normal">(${b.market || ''})</span>
             </div>
-          </div>
-        `;
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-3 text-xs">
+                <span class="font-black text-blue-600">${(b.odds || 1).toFixed(2)}</span>
+                <span class="font-bold text-slate-700">${b.stake || 0} €</span>
+              </div>
+              <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
+                <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="startInlineEdit(${b.id})" title="Modifier" class="w-8 h-8 flex items-center justify-center bg-white text-slate-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-8 h-8 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </div>
+          `;
+        }
         cardsMobile.appendChild(card);
       });
 
