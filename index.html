@@ -184,7 +184,7 @@
       <h2 id="detailedStatsTitle" class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-2">
         <i class="fa-solid fa-robot"></i> Statistiques Détaillées (IA)
       </h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="card p-5 space-y-3">
           <h3 id="compCardTitle" class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
             <i class="fa-solid fa-ranking-star text-emerald-600"></i> Stats par Championnat
@@ -224,6 +224,26 @@
             </table>
           </div>
         </div>
+
+        <div class="card p-5 space-y-3">
+          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
+            <i class="fa-solid fa-percent text-amber-500"></i> Stats par Tranche de Cote
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-center text-xs">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                  <th class="p-2.5 text-left">Tranche</th>
+                  <th class="p-2.5">Joués</th>
+                  <th class="p-2.5">Réussite</th>
+                  <th class="p-2.5">Profit Net</th>
+                  <th class="p-2.5">ROI</th>
+                </tr>
+              </thead>
+              <tbody id="oddsStatsTbody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -251,18 +271,6 @@
           <i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari
         </h2>
         
-        <!-- RECHERCHE AUTOMATIQUE IA (TENNIS) -->
-        <div id="aiSearchBox" class="hidden p-3.5 border-2 border-amber-300 bg-amber-50 rounded-xl space-y-2">
-          <label class="block text-xs font-bold text-amber-800">
-            <span>🔎 Recherche Auto IA (Tennis)</span>
-          </label>
-          <p class="text-[10px] leading-snug text-amber-700">L'IA cherche les prochains matchs ATP/WTA sur le web, propose un pronostic + une cote, et les ajoute directement (en "En cours").</p>
-          <button id="aiSearchBtn" type="button" onclick="searchAndAddTennisMatchesIA()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-3 rounded-lg text-xs transition shadow-md flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-magnifying-glass"></i> Chercher les matchs (3 prochains jours)
-          </button>
-          <p id="aiSearchStatus" class="text-[10px] leading-snug text-amber-700 hidden"></p>
-        </div>
-
         <!-- IMPORT UNIVERSEL IA -->
         <div id="quickAddBox" class="p-3.5 border rounded-xl space-y-2">
           <label id="quickAddLabel" class="block text-xs font-bold">
@@ -481,6 +489,51 @@
     </div>
   </div>
 
+  <!-- MODAL PREVIEW IMPORT -->
+  <div id="importPreviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-blue-600"></i> Aperçu avant import
+          </h3>
+          <p id="importPreviewCount" class="text-[10px] text-slate-400 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeImportPreview()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p id="importSkippedInfo" class="text-[10px] text-slate-500"></p>
+
+      <div class="overflow-auto flex-1 border border-slate-200 rounded-xl">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 sticky top-0">
+            <tr>
+              <th class="p-2 w-8"></th>
+              <th class="p-2">Date</th>
+              <th class="p-2">Match</th>
+              <th class="p-2">Compétition</th>
+              <th class="p-2">Marché</th>
+              <th class="p-2">Pronostic</th>
+              <th class="p-2">Cote</th>
+            </tr>
+          </thead>
+          <tbody id="importPreviewTbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <p class="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation"></i> Lignes en orange : marché non reconnu automatiquement — vérifie-les avant de valider.
+      </p>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+        <button type="button" onclick="closeImportPreview()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition">Annuler</button>
+        <button type="button" onclick="confirmImportPreview()" class="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-md shadow-blue-600/20">
+          <i class="fa-solid fa-check mr-1"></i> Valider et ajouter (<span id="importConfirmCount">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST UNDO -->
   <div id="toastUndo" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 text-xs z-50 hidden transition-all">
     <div class="flex items-center gap-2">
@@ -502,6 +555,7 @@
     let currentSort = { field: 'date', dir: 'desc' };
     let lastDeletedBet = null;
     let undoTimeout = null;
+    let importPreviewData = [];
 
     const footballMarkets = ["1N2", "BTTS", "Over/Under", "Buteur", "Mi-Temps", "Handicap", "Autre"];
     const tennisMarkets = ["Vainqueur 1/2", "Résultat Match", "Score Exact", "Handicap Jeux", "Handicap Sets", "Over/Under Jeux", "Nombre de Sets", "Autre"];
@@ -601,7 +655,6 @@
         document.getElementById('matchInput').placeholder = "Ex: PSG vs OM";
         document.getElementById('compInput').placeholder = "Ex: Ligue 1";
         document.getElementById('surfaceContainer').classList.add('hidden');
-        document.getElementById('aiSearchBox').classList.add('hidden');
       } else {
         document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Tennis";
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Ajouter un Pari Tennis (IA)`;
@@ -613,7 +666,6 @@
         document.getElementById('matchInput').placeholder = "Ex: Baez S. vs Bellucci M.";
         document.getElementById('compInput').placeholder = "Ex: ATP Montréal (M1000)";
         document.getElementById('surfaceContainer').classList.remove('hidden');
-        document.getElementById('aiSearchBox').classList.remove('hidden');
       }
 
       markets.forEach(m => marketSelect.innerHTML += `<option value="${m}">${m}</option>`);
@@ -801,99 +853,6 @@
       );
     }
 
-    async function searchAndAddTennisMatchesIA() {
-      const btn = document.getElementById('aiSearchBtn');
-      const statusEl = document.getElementById('aiSearchStatus');
-      const defaultStake = parseFloat(document.getElementById('stakeInput').value) || 1;
-      const defaultSurface = document.getElementById('surfaceInput')?.value || 'Dur';
-
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Recherche en cours...`;
-      statusEl.classList.remove('hidden');
-      statusEl.textContent = "L'IA cherche les prochains matchs ATP/WTA sur le web...";
-
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      const prompt = `Cherche sur le web les matchs de tennis ATP et WTA programmés dans les 3 prochains jours à partir du ${todayStr}.
-Pour un maximum de 8 matchs parmi les plus intéressants (privilégie les tournois ATP/WTA en cours les plus connus), donne :
-- la date du match (format AAAA-MM-JJ)
-- les deux joueurs ("Nom J. vs Nom J.")
-- le nom du tournoi
-- ton pronostic (le nom du joueur favori selon toi)
-- une cote estimée réaliste pour ce pronostic (nombre décimal, ex: 1.65)
-
-Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans balises markdown, au format exact suivant :
-[{"date":"AAAA-MM-JJ","match":"Joueur A vs Joueur B","comp":"Nom du tournoi","prono":"Nom du joueur pronostiqué","odds":1.65}]`;
-
-      try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-6",
-            max_tokens: 1000,
-            messages: [{ role: "user", content: prompt }],
-            tools: [{ type: "web_search_20250305", name: "web_search" }]
-          })
-        });
-
-        if (!response.ok) throw new Error(`Erreur API (${response.status})`);
-        const data = await response.json();
-
-        const fullText = data.content
-          .filter(block => block.type === 'text')
-          .map(block => block.text)
-          .join('\n')
-          .trim();
-
-        const cleaned = fullText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const jsonStart = cleaned.indexOf('[');
-        const jsonEnd = cleaned.lastIndexOf(']');
-        if (jsonStart === -1 || jsonEnd === -1) throw new Error("Réponse IA illisible (pas de JSON trouvé).");
-
-        const matches = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1));
-        if (!Array.isArray(matches) || matches.length === 0) throw new Error("Aucun match retourné par l'IA.");
-
-        let addedCount = 0;
-        let skippedDuplicates = 0;
-
-        matches.forEach((m, i) => {
-          if (!m.match || !m.comp || !m.prono) return;
-          const odds = parseFloat(m.odds);
-          const newBet = {
-            id: Date.now() + i,
-            source: 'AI',
-            date: /^\d{4}-\d{2}-\d{2}$/.test(m.date) ? m.date : todayStr,
-            type: 'Single',
-            match: String(m.match).trim(),
-            comp: String(m.comp).trim(),
-            market: 'Vainqueur 1/2',
-            prono: String(m.prono).trim(),
-            odds: !isNaN(odds) && odds > 1 ? odds : 1.50,
-            stake: defaultStake,
-            status: 'Pending',
-            surface: defaultSurface
-          };
-
-          if (isDuplicateBet('tennis', newBet)) {
-            skippedDuplicates++;
-            return;
-          }
-
-          state.tennis.unshift(newBet);
-          addedCount++;
-        });
-
-        saveState();
-        statusEl.textContent = `✅ ${addedCount} match(s) ajouté(s)${skippedDuplicates > 0 ? `, ${skippedDuplicates} doublon(s) ignoré(s)` : ''}.`;
-      } catch (err) {
-        statusEl.textContent = `❌ Erreur : ${err.message}`;
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Chercher les matchs (3 prochains jours)`;
-      }
-    }
-
     function normalizeGluedText(str) {
       return str
         .replace(/(\.)([A-ZÀ-Ö])/g, '$1 $2')            // "J.ATP" -> "J. ATP"
@@ -918,9 +877,8 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
 
       const lines = rawPrepped.split('\n').filter(l => l.trim() !== '');
       const defaultStake = parseFloat(document.getElementById('stakeInput').value) || 1;
-      let addedCount = 0;
       let skippedDuplicates = 0;
-      const unresolvedMarkets = [];
+      const parsedBets = [];
 
       lines.forEach((line, i) => {
         let str = line.trim();
@@ -960,13 +918,14 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
             const sportDefault = currentSport === 'tennis' ? 'Vainqueur 1/2' : '1N2';
 
             let marketName = sportDefault;
+            let unresolvedMarket = false;
             if (parts.length >= 4) {
               const resolved = normalizeMarketLabel(parts[2], currentSport, null);
               if (resolved) {
                 marketName = resolved;
               } else {
                 marketName = 'Autre';
-                unresolvedMarkets.push(`L${i + 1}: "${parts[2]}"`);
+                unresolvedMarket = true;
               }
             }
 
@@ -994,7 +953,8 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
               prono: pronoVal,
               odds: odds,
               stake: stakeVal,
-              status: 'Pending'
+              status: 'Pending',
+              unresolved: unresolvedMarket
             };
 
             if (currentSport === 'tennis') {
@@ -1006,8 +966,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
               return;
             }
 
-            state[currentSport].unshift(newBet);
-            addedCount++;
+            parsedBets.push(newBet);
             return;
           }
         }
@@ -1070,6 +1029,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
         }
 
         let result = regexParseLine(str);
+        let usedRepair = false;
         if (!result.matchedMarket) {
           // Repli : le texte est peut-être collé sans espaces (ex: "MontréalTotal Jeux")
           // -> on tente de réparer les espaces manquants puis on réessaie.
@@ -1077,12 +1037,11 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
           const retry = regexParseLine(repaired);
           if (retry.matchedMarket) {
             result = retry;
-          } else {
-            unresolvedMarkets.push(`L${i + 1}: "${line.trim().slice(0, 40)}"`);
+            usedRepair = true;
           }
         }
 
-        const { market, comp, matchName, prono } = result;
+        const { market, comp, matchName, prono, matchedMarket } = result;
 
         const newBet = {
           id: Date.now() + i,
@@ -1095,7 +1054,9 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
           prono: prono,
           odds: odds,
           stake: defaultStake,
-          status: 'Pending'
+          status: 'Pending',
+          unresolved: !matchedMarket,
+          usedRepair
         };
 
         if (currentSport === 'tennis') {
@@ -1107,17 +1068,81 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
           return;
         }
 
-        state[currentSport].unshift(newBet);
-        addedCount++;
+        parsedBets.push(newBet);
       });
 
       document.getElementById('rawText').value = '';
-      saveState();
 
-      let msg = `✅ ${addedCount} pari(s) IA ajouté(s) !`;
-      if (skippedDuplicates > 0) msg += `\n⏭️ ${skippedDuplicates} doublon(s) ignoré(s) (déjà présent(s)).`;
-      if (unresolvedMarkets.length > 0) msg += `\n⚠️ Marché non reconnu (mis sur "Autre" ou valeur par défaut) :\n${unresolvedMarkets.join('\n')}`;
-      alert(msg);
+      if (parsedBets.length === 0) {
+        alert(skippedDuplicates > 0
+          ? `⏭️ Tous les paris analysés (${skippedDuplicates}) étaient déjà présents.`
+          : `⚠️ Aucun pari n'a pu être extrait du texte.`);
+        return;
+      }
+
+      openImportPreview(parsedBets, skippedDuplicates);
+    }
+
+    // --- Prévisualisation avant import : rien n'est ajouté à state tant que
+    // l'utilisateur n'a pas cliqué sur "Valider et ajouter" dans la modal. ---
+
+    function openImportPreview(bets, skippedDuplicates) {
+      importPreviewData = bets.map(b => ({ ...b, include: true }));
+
+      const infoEl = document.getElementById('importSkippedInfo');
+      infoEl.textContent = skippedDuplicates > 0
+        ? `⏭️ ${skippedDuplicates} doublon(s) déjà présent(s) ont été ignoré(s) automatiquement.`
+        : '';
+
+      renderImportPreview();
+      document.getElementById('importPreviewModal').classList.remove('hidden');
+    }
+
+    function renderImportPreview() {
+      const tbody = document.getElementById('importPreviewTbody');
+      tbody.innerHTML = '';
+
+      importPreviewData.forEach((b, i) => {
+        const tr = document.createElement('tr');
+        tr.className = b.unresolved ? 'bg-amber-50' : (b.usedRepair ? 'bg-blue-50/60' : '');
+        tr.innerHTML = `
+          <td class="p-2 align-top"><input type="checkbox" ${b.include ? 'checked' : ''} onchange="importPreviewData[${i}].include=this.checked; updateImportConfirmCount()"></td>
+          <td class="p-2 align-top"><input class="input-field w-28 text-xs" value="${b.date || ''}" onchange="importPreviewData[${i}].date=this.value"></td>
+          <td class="p-2 align-top"><input class="input-field w-44 text-xs" value="${b.match || ''}" onchange="importPreviewData[${i}].match=this.value"></td>
+          <td class="p-2 align-top"><input class="input-field w-36 text-xs" value="${b.comp || ''}" onchange="importPreviewData[${i}].comp=this.value"></td>
+          <td class="p-2 align-top"><input class="input-field w-32 text-xs ${b.unresolved ? 'text-amber-700 font-bold' : ''}" value="${b.market || ''}" onchange="importPreviewData[${i}].market=this.value"></td>
+          <td class="p-2 align-top"><input class="input-field w-32 text-xs" value="${b.prono || ''}" onchange="importPreviewData[${i}].prono=this.value"></td>
+          <td class="p-2 align-top"><input type="number" step="0.01" class="input-field w-16 text-xs" value="${b.odds}" onchange="importPreviewData[${i}].odds=parseFloat(this.value)"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('importPreviewCount').textContent = `${importPreviewData.length} pari(s) analysé(s) — vérifie et corrige si besoin avant de valider`;
+      updateImportConfirmCount();
+    }
+
+    function updateImportConfirmCount() {
+      document.getElementById('importConfirmCount').textContent = importPreviewData.filter(b => b.include).length;
+    }
+
+    function closeImportPreview() {
+      importPreviewData = [];
+      document.getElementById('importPreviewModal').classList.add('hidden');
+    }
+
+    function confirmImportPreview() {
+      const toAdd = importPreviewData.filter(b => b.include);
+      toAdd.forEach(b => {
+        delete b.include;
+        delete b.unresolved;
+        delete b.usedRepair;
+        state[currentSport].unshift(b);
+      });
+
+      const addedCount = toAdd.length;
+      closeImportPreview();
+      saveState();
+      alert(`✅ ${addedCount} pari(s) IA ajouté(s) !`);
     }
 
     function addBet(e) {
@@ -1510,7 +1535,14 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
     function renderGroupedStats() {
       const currentList = state[currentSport] || [];
 
-      const compMap = {}, marketMap = {};
+      const compMap = {}, marketMap = {}, oddsMap = {};
+
+      function getOddsBracket(odds) {
+        if (odds < 1.50) return '1.00 – 1.49';
+        if (odds < 2.00) return '1.50 – 1.99';
+        return '2.00 et +';
+      }
+      const oddsBracketOrder = ['1.00 – 1.49', '1.50 – 1.99', '2.00 et +'];
 
       currentList.forEach(b => {
         if (b.status === 'Pending') return;
@@ -1520,14 +1552,16 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
           : (b.comp || 'Non spécifié');
 
         const marketKey = b.market || 'Autre';
+        const oddsKey = getOddsBracket(b.odds || 1);
 
         if (!compMap[compKey]) compMap[compKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
         if (!marketMap[marketKey]) marketMap[marketKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
+        if (!oddsMap[oddsKey]) oddsMap[oddsKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
 
         const stake = b.stake || 0;
         const odds = b.odds || 1;
 
-        [compMap[compKey], marketMap[marketKey]].forEach(target => {
+        [compMap[compKey], marketMap[marketKey], oddsMap[oddsKey]].forEach(target => {
           target.total++;
           target.stake += stake;
           if (b.status === 'Won') {
@@ -1539,6 +1573,9 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
           }
         });
       });
+
+      const oddsMapOrdered = {};
+      oddsBracketOrder.forEach(k => { if (oddsMap[k]) oddsMapOrdered[k] = oddsMap[k]; });
 
       function populateTable(tbodyId, mapData, clickable) {
         const tbody = document.getElementById(tbodyId);
@@ -1575,6 +1612,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans aucun texte avant ou après, sans 
 
       populateTable('compStatsTbody', compMap, true);
       populateTable('marketStatsTbody', marketMap, false);
+      populateTable('oddsStatsTbody', oddsMapOrdered, false);
     }
 
     function toggleCompFilter(key) {
