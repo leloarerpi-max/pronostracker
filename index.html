@@ -244,6 +244,26 @@
             </table>
           </div>
         </div>
+
+        <div id="genderStatsCard" class="hidden card p-5 space-y-3">
+          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
+            <i class="fa-solid fa-venus-mars text-purple-500"></i> Stats ATP vs WTA
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-center text-xs">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                  <th class="p-2.5 text-left">Circuit</th>
+                  <th class="p-2.5">Joués</th>
+                  <th class="p-2.5">Réussite</th>
+                  <th class="p-2.5">Profit Net</th>
+                  <th class="p-2.5">ROI</th>
+                </tr>
+              </thead>
+              <tbody id="genderStatsTbody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -327,6 +347,14 @@
             </select>
           </div>
 
+          <div id="genreContainer" class="hidden">
+            <label class="block font-semibold text-slate-600 mb-1">Circuit</label>
+            <select id="genreInput" class="input-field w-full">
+              <option value="ATP">🚹 ATP</option>
+              <option value="WTA">🚺 WTA</option>
+            </select>
+          </div>
+
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Pronostic</label>
             <input type="text" id="pronoInput" placeholder="Ex: Victoire Baez" required class="input-field w-full">
@@ -373,6 +401,14 @@
                 ✅ Terminés (<span id="countSettled">0</span>)
               </button>
             </div>
+            <div id="genreFilterGroup" class="hidden bg-slate-100 p-1 rounded-xl items-center gap-1 border border-slate-200 shrink-0">
+              <button onclick="setGenreFilter('ATP')" id="btnFilterATP" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                🚹 ATP
+              </button>
+              <button onclick="setGenreFilter('WTA')" id="btnFilterWTA" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                🚺 WTA
+              </button>
+            </div>
           </div>
 
           <div id="compFilterBanner" class="hidden items-center gap-2 w-full sm:w-auto bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg px-3 py-1.5">
@@ -411,7 +447,7 @@
                 <th onclick="toggleSort('betNum')" class="p-3 text-center sortable whitespace-nowrap">N° <span id="sort-betNum"></span></th>
                 <th onclick="toggleSort('date')" class="p-3 sortable whitespace-nowrap">Date <span id="sort-date">▼</span></th>
                 <th onclick="toggleSort('match')" class="p-3 sortable">Match <span id="sort-match"></span></th>
-                <th class="p-3">Pronostic</th>
+                <th onclick="toggleSort('prono')" class="p-3 sortable">Pronostic <span id="sort-prono"></span></th>
                 <th onclick="toggleSort('odds')" class="p-3 text-center sortable whitespace-nowrap">Cote <span id="sort-odds"></span></th>
                 <th onclick="toggleSort('stake')" class="p-3 text-center sortable whitespace-nowrap">Mise <span id="sort-stake"></span></th>
                 <th onclick="toggleSort('status')" class="p-3 text-center sortable whitespace-nowrap">Statut <span id="sort-status"></span></th>
@@ -552,6 +588,7 @@
     let chartInstance = null;
     let currentQuickFilter = 'ALL';
     let currentCompFilter = null;
+    let currentGenreFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
     let lastDeletedBet = null;
     let undoTimeout = null;
@@ -571,6 +608,10 @@
     function saveState() {
       localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state));
       render();
+    }
+
+    function detectGenre(compStr) {
+      return /wta/i.test(compStr || '') ? 'WTA' : 'ATP';
     }
 
     function getTournamentCategory(compStr) {
@@ -637,6 +678,7 @@
     function switchSport(sport) {
       currentSport = sport;
       currentCompFilter = null;
+      currentGenreFilter = null;
       editingBetId = null;
       applyTheme(sport);
       document.getElementById('tabFoot').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'football' ? 'active' : ''}`;
@@ -657,6 +699,10 @@
         document.getElementById('matchInput').placeholder = "Ex: PSG vs OM";
         document.getElementById('compInput').placeholder = "Ex: Ligue 1";
         document.getElementById('surfaceContainer').classList.add('hidden');
+        document.getElementById('genreContainer').classList.add('hidden');
+        document.getElementById('genderStatsCard').classList.add('hidden');
+        document.getElementById('genreFilterGroup').classList.add('hidden');
+        document.getElementById('genreFilterGroup').classList.remove('flex');
       } else {
         document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Tennis";
         document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Ajouter un Pari Tennis (IA)`;
@@ -668,6 +714,10 @@
         document.getElementById('matchInput').placeholder = "Ex: Baez S. vs Bellucci M.";
         document.getElementById('compInput').placeholder = "Ex: ATP Montréal (M1000)";
         document.getElementById('surfaceContainer').classList.remove('hidden');
+        document.getElementById('genreContainer').classList.remove('hidden');
+        document.getElementById('genderStatsCard').classList.remove('hidden');
+        document.getElementById('genreFilterGroup').classList.remove('hidden');
+        document.getElementById('genreFilterGroup').classList.add('flex');
       }
 
       markets.forEach(m => marketSelect.innerHTML += `<option value="${m}">${m}</option>`);
@@ -801,10 +851,10 @@
     }
 
     function exportCSV() {
-      let csv = "Sport,ID,Source,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut\n";
+      let csv = "Sport,ID,Source,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut,Circuit\n";
       ['football', 'tennis'].forEach(sp => {
         (state[sp] || []).forEach(b => {
-          csv += `"${sp}","${b.id}","${b.source || 'AI'}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}"\n`;
+          csv += `"${sp}","${b.id}","${b.source || 'AI'}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}","${b.genre || ''}"\n`;
         });
       });
       const filename = `pronotracker_${new Date().toISOString().split('T')[0]}.csv`;
@@ -961,6 +1011,7 @@
 
             if (currentSport === 'tennis') {
               newBet.surface = document.getElementById('surfaceInput')?.value || 'Dur';
+              newBet.genre = detectGenre(compName);
             }
 
             if (isDuplicateBet(currentSport, newBet)) {
@@ -1063,6 +1114,7 @@
 
         if (currentSport === 'tennis') {
           newBet.surface = document.getElementById('surfaceInput')?.value || 'Dur';
+          newBet.genre = detectGenre(comp);
         }
 
         if (isDuplicateBet(currentSport, newBet)) {
@@ -1166,6 +1218,7 @@
 
       if (currentSport === 'tennis') {
         newBet.surface = document.getElementById('surfaceInput').value;
+        newBet.genre = document.getElementById('genreInput').value;
       }
 
       state[currentSport].unshift(newBet);
@@ -1269,6 +1322,11 @@
       if (!isNaN(newOdds) && newOdds > 1) bet.odds = newOdds;
       if (!isNaN(newStake) && newStake > 0) bet.stake = newStake;
 
+      if (currentSport === 'tennis') {
+        const genreEl = document.getElementById(`inlineGenre${suffix}-${id}`);
+        if (genreEl) bet.genre = genreEl.value;
+      }
+
       editingBetId = null;
       saveState();
     }
@@ -1286,6 +1344,15 @@
       btnPending.className = `px-3 py-1 rounded-lg transition ${filter === 'Pending' ? activeClass : inactiveClass}`;
       btnSettled.className = `px-3 py-1 rounded-lg transition ${filter === 'Settled' ? activeClass : inactiveClass}`;
 
+      render();
+    }
+
+    function setGenreFilter(genre) {
+      currentGenreFilter = (currentGenreFilter === genre) ? null : genre;
+      const activeClass = "bg-white text-slate-800 shadow-sm font-bold";
+      const inactiveClass = "text-slate-600 hover:text-slate-900 font-medium";
+      document.getElementById('btnFilterATP').className = `px-3 py-1 rounded-lg transition ${currentGenreFilter === 'ATP' ? activeClass : inactiveClass}`;
+      document.getElementById('btnFilterWTA').className = `px-3 py-1 rounded-lg transition ${currentGenreFilter === 'WTA' ? activeClass : inactiveClass}`;
       render();
     }
 
@@ -1422,7 +1489,12 @@
           matchComp = bCompKey === currentCompFilter;
         }
 
-        return matchSearch && matchQuick && matchPeriod && matchComp;
+        let matchGenre = true;
+        if (currentSport === 'tennis' && currentGenreFilter) {
+          matchGenre = (b.genre || 'ATP') === currentGenreFilter;
+        }
+
+        return matchSearch && matchQuick && matchPeriod && matchComp && matchGenre;
       });
 
       filtered.sort((a, b) => {
@@ -1655,6 +1727,48 @@
       populateTable('oddsStatsTbody', oddsMapOrdered, false);
     }
 
+    function renderGenderStats() {
+      const tbody = document.getElementById('genderStatsTbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (currentSport !== 'tennis') return;
+
+      const currentList = state.tennis || [];
+      const genderMap = {
+        ATP: { total: 0, won: 0, lost: 0, stake: 0, profit: 0 },
+        WTA: { total: 0, won: 0, lost: 0, stake: 0, profit: 0 }
+      };
+
+      currentList.forEach(b => {
+        if (b.status === 'Pending') return;
+        const key = (b.genre === 'WTA') ? 'WTA' : 'ATP';
+        const target = genderMap[key];
+        const stake = b.stake || 0;
+        const odds = b.odds || 1;
+        target.total++;
+        target.stake += stake;
+        if (b.status === 'Won') { target.won++; target.profit += (odds - 1) * stake; }
+        else if (b.status === 'Lost') { target.lost++; target.profit -= stake; }
+      });
+
+      ['ATP', 'WTA'].forEach(key => {
+        const item = genderMap[key];
+        const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
+        const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
+        const profClass = item.profit > 0 ? 'text-emerald-600 font-extrabold' : item.profit < 0 ? 'text-rose-600 font-extrabold' : 'text-slate-700';
+        const icon = key === 'ATP' ? '🚹' : '🚺';
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-2.5 text-left font-bold text-slate-800">${icon} ${key}</td>
+            <td class="p-2.5">${item.total}</td>
+            <td class="p-2.5">${winRate} %</td>
+            <td class="p-2.5 ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
+            <td class="p-2.5 ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
+          </tr>
+        `;
+      });
+    }
+
     function toggleCompFilter(key) {
       currentCompFilter = (currentCompFilter === key) ? null : key;
       render();
@@ -1734,6 +1848,14 @@
                   <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Mise (€)</label>
                   <input type="number" step="0.01" min="0.01" id="inlineStake-${b.id}" value="${b.stake || 0}" class="input-field w-full text-xs font-black">
                 </div>
+                ${currentSport === 'tennis' ? `
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Circuit</label>
+                  <select id="inlineGenre-${b.id}" class="input-field w-full text-xs">
+                    <option value="ATP" ${(b.genre || 'ATP') === 'ATP' ? 'selected' : ''}>🚹 ATP</option>
+                    <option value="WTA" ${b.genre === 'WTA' ? 'selected' : ''}>🚺 WTA</option>
+                  </select>
+                </div>` : ''}
                 <div class="col-span-2">
                   <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Match</label>
                   <input type="text" id="inlineMatch-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs font-bold">
@@ -1799,6 +1921,14 @@
                 <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Match</label>
                 <input type="text" id="inlineMatchM-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs font-bold">
               </div>
+              ${currentSport === 'tennis' ? `
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Circuit</label>
+                <select id="inlineGenreM-${b.id}" class="input-field w-full text-xs">
+                  <option value="ATP" ${(b.genre || 'ATP') === 'ATP' ? 'selected' : ''}>🚹 ATP</option>
+                  <option value="WTA" ${b.genre === 'WTA' ? 'selected' : ''}>🚺 WTA</option>
+                </select>
+              </div>` : ''}
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Compétition</label>
                 <input type="text" id="inlineCompM-${b.id}" value="${escAttr(b.comp)}" class="input-field w-full text-xs">
@@ -1874,6 +2004,7 @@
       renderPerformanceStats();
       renderDailyStats();
       renderGroupedStats();
+      renderGenderStats();
       renderChart();
     }
 
