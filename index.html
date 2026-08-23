@@ -411,11 +411,7 @@
             </div>
           </div>
 
-          <div id="compFilterBanner" class="hidden items-center gap-2 w-full sm:w-auto bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg px-3 py-1.5">
-            <i class="fa-solid fa-filter"></i>
-            <span id="compFilterLabel"></span>
-            <button onclick="toggleCompFilter(currentCompFilter)" class="ml-auto text-blue-500 hover:text-blue-800"><i class="fa-solid fa-xmark"></i></button>
-          </div>
+          <div id="activeFiltersBanner" class="hidden flex-wrap items-center gap-2 w-full sm:w-auto"></div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
@@ -588,6 +584,8 @@
     let chartInstance = null;
     let currentQuickFilter = 'ALL';
     let currentCompFilter = null;
+    let currentMarketFilter = null;
+    let currentOddsFilter = null;
     let currentGenreFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
     let lastDeletedBet = null;
@@ -599,6 +597,12 @@
     const tennisMarkets = ["Vainqueur 1/2", "Résultat Match", "Score Exact", "Handicap Jeux", "Handicap Sets", "Over/Under Jeux", "Nombre de Sets", "Autre"];
 
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+
+    function getOddsBracket(odds) {
+      if (odds < 1.50) return '1.00 – 1.49';
+      if (odds < 2.00) return '1.50 – 1.99';
+      return '2.00 et +';
+    }
 
     function normalizeMatchName(str) {
       if (!str) return '';
@@ -678,6 +682,8 @@
     function switchSport(sport) {
       currentSport = sport;
       currentCompFilter = null;
+      currentMarketFilter = null;
+      currentOddsFilter = null;
       currentGenreFilter = null;
       editingBetId = null;
       applyTheme(sport);
@@ -1489,12 +1495,22 @@
           matchComp = bCompKey === currentCompFilter;
         }
 
+        let matchMarket = true;
+        if (currentMarketFilter) {
+          matchMarket = (b.market || 'Autre') === currentMarketFilter;
+        }
+
+        let matchOdds = true;
+        if (currentOddsFilter) {
+          matchOdds = getOddsBracket(b.odds || 1) === currentOddsFilter;
+        }
+
         let matchGenre = true;
         if (currentSport === 'tennis' && currentGenreFilter) {
           matchGenre = (b.genre || 'ATP') === currentGenreFilter;
         }
 
-        return matchSearch && matchQuick && matchPeriod && matchComp && matchGenre;
+        return matchSearch && matchQuick && matchPeriod && matchComp && matchMarket && matchOdds && matchGenre;
       });
 
       filtered.sort((a, b) => {
@@ -1649,11 +1665,6 @@
 
       const compMap = {}, marketMap = {}, oddsMap = {};
 
-      function getOddsBracket(odds) {
-        if (odds < 1.50) return '1.00 – 1.49';
-        if (odds < 2.00) return '1.50 – 1.99';
-        return '2.00 et +';
-      }
       const oddsBracketOrder = ['1.00 – 1.49', '1.50 – 1.99', '2.00 et +'];
 
       currentList.forEach(b => {
@@ -1689,11 +1700,17 @@
       const oddsMapOrdered = {};
       oddsBracketOrder.forEach(k => { if (oddsMap[k]) oddsMapOrdered[k] = oddsMap[k]; });
 
-      function populateTable(tbodyId, mapData, clickable) {
+      function populateTable(tbodyId, mapData, clickableType) {
         const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
         tbody.innerHTML = '';
         const keys = Object.keys(mapData);
+
+        const filterInfo = {
+          comp: { current: currentCompFilter, fn: 'toggleCompFilter' },
+          market: { current: currentMarketFilter, fn: 'toggleMarketFilter' },
+          odds: { current: currentOddsFilter, fn: 'toggleOddsFilter' }
+        };
 
         if (keys.length === 0) {
           tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-slate-400 font-normal">Aucune donnée disponible.</td></tr>`;
@@ -1703,11 +1720,12 @@
             const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
             const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
             const profClass = item.profit > 0 ? 'text-emerald-600 font-extrabold' : item.profit < 0 ? 'text-rose-600 font-extrabold' : 'text-slate-700';
-            const isActive = clickable && currentCompFilter === k;
-            const rowClasses = clickable
+            const info = clickableType ? filterInfo[clickableType] : null;
+            const isActive = info && info.current === k;
+            const rowClasses = clickableType
               ? `hover:bg-blue-50 transition cursor-pointer ${isActive ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : ''}`
               : 'hover:bg-slate-50 transition';
-            const rowAttrs = clickable ? `onclick="toggleCompFilter('${k.replace(/'/g, "\\'")}')"` : '';
+            const rowAttrs = clickableType ? `onclick="${info.fn}('${k.replace(/'/g, "\\'")}')"` : '';
 
             tbody.innerHTML += `
               <tr class="${rowClasses}" ${rowAttrs}>
@@ -1722,9 +1740,9 @@
         }
       }
 
-      populateTable('compStatsTbody', compMap, true);
-      populateTable('marketStatsTbody', marketMap, false);
-      populateTable('oddsStatsTbody', oddsMapOrdered, false);
+      populateTable('compStatsTbody', compMap, 'comp');
+      populateTable('marketStatsTbody', marketMap, 'market');
+      populateTable('oddsStatsTbody', oddsMapOrdered, 'odds');
     }
 
     function renderGenderStats() {
@@ -1777,19 +1795,58 @@
       if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    function toggleMarketFilter(key) {
+      currentMarketFilter = (currentMarketFilter === key) ? null : key;
+      render();
+      renderGroupedStats();
+      const list = document.getElementById('betsTbody');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function toggleOddsFilter(key) {
+      currentOddsFilter = (currentOddsFilter === key) ? null : key;
+      render();
+      renderGroupedStats();
+      const list = document.getElementById('betsTbody');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderActiveFiltersBanner() {
+      const banner = document.getElementById('activeFiltersBanner');
+      const chips = [];
+
+      if (currentCompFilter) {
+        chips.push({ label: currentCompFilter, onClear: "toggleCompFilter(currentCompFilter)" });
+      }
+      if (currentMarketFilter) {
+        chips.push({ label: currentMarketFilter, onClear: "toggleMarketFilter(currentMarketFilter)" });
+      }
+      if (currentOddsFilter) {
+        chips.push({ label: currentOddsFilter, onClear: "toggleOddsFilter(currentOddsFilter)" });
+      }
+
+      if (chips.length === 0) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        banner.innerHTML = '';
+        return;
+      }
+
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+      banner.innerHTML = chips.map(c => `
+        <span class="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg px-3 py-1.5">
+          <i class="fa-solid fa-filter"></i>
+          <span>${escAttr(c.label)}</span>
+          <button onclick="${c.onClear}" class="ml-auto text-blue-500 hover:text-blue-800"><i class="fa-solid fa-xmark"></i></button>
+        </span>
+      `).join('');
+    }
+
     function render() {
       updateBackupBanner();
 
-      const compFilterBanner = document.getElementById('compFilterBanner');
-      const compFilterLabel = document.getElementById('compFilterLabel');
-      if (currentCompFilter) {
-        compFilterBanner.classList.remove('hidden');
-        compFilterBanner.classList.add('flex');
-        compFilterLabel.textContent = currentCompFilter;
-      } else {
-        compFilterBanner.classList.add('hidden');
-        compFilterBanner.classList.remove('flex');
-      }
+      renderActiveFiltersBanner();
 
       const currentList = state[currentSport] || [];
       const filteredBets = getFilteredAndSortedBets();
