@@ -1450,7 +1450,7 @@
       return map;
     }
 
-    function getFilteredAndSortedBets() {
+    function getFilteredAndSortedBets(applyCompCheckboxFilter = false) {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const chartNumbers = getBetChartNumbers();
@@ -1497,7 +1497,7 @@
         }
 
         let matchComp = true;
-        if (currentCompFilters.size > 0) {
+        if (applyCompCheckboxFilter && currentCompFilters.size > 0) {
           const bCompKey = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié').trim();
           matchComp = currentCompFilters.has(bCompKey);
         }
@@ -1876,9 +1876,6 @@
       const banner = document.getElementById('activeFiltersBanner');
       const chips = [];
 
-      currentCompFilters.forEach(comp => {
-        chips.push({ label: comp, onClear: `toggleCompFilterCheckbox('${comp.replace(/'/g, "\\'")}')` });
-      });
       if (currentMarketFilter) {
         chips.push({ label: currentMarketFilter, onClear: "toggleMarketFilter(currentMarketFilter)" });
       }
@@ -1943,7 +1940,11 @@
       renderActiveFiltersBanner();
 
       const currentList = state[currentSport] || [];
-      const filteredBets = getFilteredAndSortedBets();
+      // L'historique n'est PAS filtré par les championnats cochés dans "Stats par Championnat" :
+      // ces cases ne servent qu'à recalculer le bilan (cartes KPI), pas à cacher des paris.
+      const filteredBets = getFilteredAndSortedBets(false);
+      // Cette liste inclut en plus le filtre "championnats cochés", utilisée uniquement pour le bilan.
+      const kpiBets = getFilteredAndSortedBets(true);
       const tbody = document.getElementById('betsTbody');
       const cardsMobile = document.getElementById('betsCardsMobile');
       tbody.innerHTML = '';
@@ -1962,7 +1963,7 @@
       // Bilan (cartes KPI en haut) : calculé uniquement sur les paris qui passent
       // les filtres actifs (championnat / marché / cote / circuit / recherche / période / statut).
       let wonBets = 0, lostBets = 0, settledBets = 0, profit = 0, totalStake = 0, oddsSum = 0;
-      filteredBets.forEach(b => {
+      kpiBets.forEach(b => {
         if (b.status === 'Won') { wonBets++; settledBets++; profit += ((b.odds || 1) - 1) * (b.stake || 0); totalStake += (b.stake || 0); oddsSum += (b.odds || 1); }
         else if (b.status === 'Lost') { lostBets++; settledBets++; profit -= (b.stake || 0); totalStake += (b.stake || 0); oddsSum += (b.odds || 1); }
       });
