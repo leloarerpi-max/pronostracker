@@ -1450,7 +1450,10 @@
       return map;
     }
 
-    function getFilteredAndSortedBets(applyCompCheckboxFilter = false) {
+    // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
+    // championnats cochés (si demandé), marché, tranche de cote, circuit ATP/WTA.
+    // Préserve l'ordre d'origine du tableau (utile pour les séries et le graphique cumulé).
+    function getStatsFilteredBetsRaw(applyCompCheckboxFilter) {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const chartNumbers = getBetChartNumbers();
@@ -1459,17 +1462,17 @@
       const period = document.getElementById('filterPeriod').value;
       const dateFrom = document.getElementById('filterDateFrom')?.value || '';
       const dateTo = document.getElementById('filterDateTo')?.value || '';
-      
+
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
-      
+
       const tomorrowObj = new Date(now);
       tomorrowObj.setDate(now.getDate() + 1);
       const tomorrowStr = tomorrowObj.toISOString().slice(0, 10);
-      
+
       const currentMonthStr = now.toISOString().slice(0, 7);
 
-      let filtered = currentList.filter(b => {
+      return currentList.filter(b => {
         const matchSearch = searchIsNumber
           ? (chartNumbers[b.id] === searchNum)
           : ((b.match || '').toLowerCase().includes(search) || 
@@ -1519,6 +1522,18 @@
 
         return matchSearch && matchQuick && matchPeriod && matchComp && matchMarket && matchOdds && matchGenre;
       });
+    }
+
+    // Utilisée par Performance IA, Bilan Quotidien et le Graphique : mêmes filtres actifs
+    // que le Bilan du haut (recherche/période/statut/marché/cote/circuit + championnats cochés),
+    // sans tri, pour préserver l'ordre chronologique d'origine.
+    function getStatsFilteredBets() {
+      return getStatsFilteredBetsRaw(true);
+    }
+
+    function getFilteredAndSortedBets(applyCompCheckboxFilter = false) {
+      const chartNumbers = getBetChartNumbers();
+      let filtered = getStatsFilteredBetsRaw(applyCompCheckboxFilter);
 
       filtered.sort((a, b) => {
         if (currentSort.field === 'date') {
@@ -1567,7 +1582,7 @@
       const tbody = document.getElementById('dailyStatsTbody');
       tbody.innerHTML = '';
       
-      const sportBets = state[currentSport] || [];
+      const sportBets = getStatsFilteredBets();
       const dailyMap = {};
 
       sportBets.forEach(b => {
@@ -1619,11 +1634,13 @@
     }
 
     function renderPerformanceStats() {
-      const currentList = state[currentSport] || [];
+      // Même filtres actifs que le Bilan en haut (recherche/période/statut/marché/cote/circuit
+      // + championnats cochés), pas seulement le championnat.
+      const compFilteredList = getStatsFilteredBets();
 
       let stats = { total: 0, won: 0, lost: 0, pending: 0, stake: 0, profit: 0, oddsSum: 0, bets: [] };
 
-      currentList.forEach(b => {
+      compFilteredList.forEach(b => {
         stats.bets.push(b);
         if (b.status === 'Pending') {
           stats.pending++;
@@ -2177,15 +2194,10 @@
 
     function renderChart() {
       const ctx = document.getElementById('bankrollChart').getContext('2d');
-      const currentList = state[currentSport] || [];
 
-      // Le graphique suit la même logique que le Bilan en haut : si des championnats
-      // sont cochés dans "Stats par Championnat", on ne trace que leur évolution cumulée.
-      const compFilteredList = currentList.filter(b => {
-        if (currentCompFilters.size === 0) return true;
-        const bCompKey = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié').trim();
-        return currentCompFilters.has(bCompKey);
-      });
+      // Le graphique suit la même logique que le Bilan en haut : tous les filtres actifs
+      // (recherche, période, statut, marché, cote, circuit, championnats cochés).
+      const compFilteredList = getStatsFilteredBets();
 
       const sortedBets = [...compFilteredList].reverse();
       const chartNumbers = getBetChartNumbers(); // numérotation globale, indépendante du filtre championnat
