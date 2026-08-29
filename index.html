@@ -2177,14 +2177,23 @@
 
     function renderChart() {
       const ctx = document.getElementById('bankrollChart').getContext('2d');
-      const sortedBets = [...(state[currentSport] || [])].reverse();
+      const currentList = state[currentSport] || [];
+
+      // Le graphique suit la même logique que le Bilan en haut : si des championnats
+      // sont cochés dans "Stats par Championnat", on ne trace que leur évolution cumulée.
+      const compFilteredList = currentList.filter(b => {
+        if (currentCompFilters.size === 0) return true;
+        const bCompKey = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié').trim();
+        return currentCompFilters.has(bCompKey);
+      });
+
+      const sortedBets = [...compFilteredList].reverse();
+      const chartNumbers = getBetChartNumbers(); // numérotation globale, indépendante du filtre championnat
       
       let aiCum = 0;
 
       let labels = ["Début"];
       let aiData = [0];
-
-      let step = 1;
 
       sortedBets.forEach(b => {
         if (b.status === 'Pending') return;
@@ -2195,7 +2204,7 @@
 
         aiCum += profitChange;
 
-        labels.push(`#${step++}`);
+        labels.push(`#${chartNumbers[b.id]}`);
         aiData.push(parseFloat(aiCum.toFixed(2)));
       });
 
@@ -2233,7 +2242,10 @@
           onClick: (evt, elements) => {
             if (elements.length > 0) {
               const idx = elements[0].index;
-              if (idx > 0) filterByBetNumber(idx);
+              if (idx > 0) {
+                const betNum = parseInt(labels[idx].replace('#', ''), 10);
+                if (!isNaN(betNum)) filterByBetNumber(betNum);
+              }
             }
           },
           onHover: (evt, elements) => {
