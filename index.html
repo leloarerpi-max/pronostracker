@@ -1660,7 +1660,7 @@
       if (/champions\s*league|ligue\s+des\s+champions|europa\s+league|ligue\s+europa|conf[ée]rence\s+league/i.test(text)) {
         return 'Coupes Européennes';
       }
-      if (/premier\s+league|la\s+liga|serie\s+a|bundesliga|ligue\s+1\b/i.test(text)) {
+      if (/premier\s+league|la\s*liga|primera\s*divisi[oó]n|\bliga\b(?!\s*(portugal|mx|argentina|femenina))|serie\s+a|bundesliga|ligue\s+1\b/i.test(text)) {
         return 'Top 5 Européen';
       }
       if (/ligue\s+2\b|national\b/i.test(text)) {
