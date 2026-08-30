@@ -24,10 +24,6 @@
     .input-field:focus { outline: none; border-color: #2563eb; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background-color: #f1f5f9; }
-    .tab-btn { transition: all 0.2s ease; }
-    .tab-btn.active { background-color: #ffffff; font-weight: 700; box-shadow: 0 2px 4px 0 rgb(0 0 0 / 0.06); }
-    .tab-btn.active.theme-football { color: #2563eb; }
-    .tab-btn.active.theme-tennis { color: #d97706; }
   </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -108,14 +104,11 @@
       </div>
     </div>
 
-    <!-- ONGLETS DE NAVIGATION -->
-    <div class="bg-slate-200/60 p-1.5 rounded-2xl flex gap-2 w-fit">
-      <button id="tabFoot" onclick="switchSport('football')" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 active">
-        <i class="fa-solid fa-futbol text-emerald-600"></i> Football
-      </button>
-      <button id="tabTennis" onclick="switchSport('tennis')" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
-        <i class="fa-solid fa-baseball text-amber-500"></i> Tennis (100% IA)
-      </button>
+    <div id="footballCategoryCard" class="hidden space-y-3">
+      <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
+        <i class="fa-solid fa-layer-group text-blue-600"></i> Stats par Catégorie de Championnat
+      </h3>
+      <div id="footballCategoryAccordion" class="space-y-3"></div>
     </div>
 
     <!-- MODULE PERFORMANCE IA -->
@@ -124,7 +117,7 @@
         <h3 class="text-base font-extrabold flex items-center gap-2 text-slate-800">
           <i id="perfIcon" class="fa-solid fa-robot"></i> Performance IA
         </h3>
-        <span class="text-xs text-slate-400 font-medium">Paris terminés du sport actif</span>
+        <span class="text-xs text-slate-400 font-medium">Paris terminés</span>
       </div>
 
       <div id="perfCard" class="border p-5 rounded-2xl space-y-4">
@@ -190,30 +183,9 @@
       <h2 id="detailedStatsTitle" class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-2">
         <i class="fa-solid fa-robot"></i> Statistiques Détaillées (IA)
       </h2>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="card p-5 space-y-3">
-          <h3 id="compCardTitle" class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-            <i class="fa-solid fa-ranking-star text-emerald-600"></i> Stats par Championnat
-          </h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-center text-xs">
-              <thead>
-                <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                  <th class="p-2.5 text-center w-8"><input type="checkbox" id="compSelectAllCheckbox" onchange="toggleAllCompFilters(this.checked)" title="Tout cocher / tout décocher"></th>
-                  <th id="compColHeader" class="p-2.5 text-left">Championnat</th>
-                  <th class="p-2.5">Joués</th>
-                  <th class="p-2.5">Réussite</th>
-                  <th class="p-2.5">Profit Net</th>
-                  <th class="p-2.5">ROI</th>
-                </tr>
-              </thead>
-              <tbody id="compStatsTbody" class="divide-y divide-slate-100 font-medium"></tbody>
-            </table>
-          </div>
-        </div>
 
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card p-5 space-y-3">
-          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
             <i class="fa-solid fa-bullseye text-blue-600"></i> Stats par Type de Prono (Marché)
           </h3>
           <div class="overflow-x-auto">
@@ -251,41 +223,6 @@
             </table>
           </div>
         </div>
-
-        <div id="genderStatsCard" class="hidden card p-5 space-y-3">
-          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-            <i class="fa-solid fa-venus-mars text-purple-500"></i> Stats ATP vs WTA
-          </h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-center text-xs">
-              <thead>
-                <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                  <th class="p-2.5 text-left">Circuit</th>
-                  <th class="p-2.5">Joués</th>
-                  <th class="p-2.5">Réussite</th>
-                  <th class="p-2.5">Profit Net</th>
-                  <th class="p-2.5">ROI</th>
-                </tr>
-              </thead>
-              <tbody id="genderStatsTbody" class="divide-y divide-slate-100 font-medium"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- GRAPHIQUE -->
-    <div class="card p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-        <h3 class="text-sm font-bold flex items-center gap-2 text-slate-800">
-          <i class="fa-solid fa-chart-area text-blue-600"></i> Évolution Cumulée du Capital (€)
-        </h3>
-        <div id="chartLegend" class="flex items-center gap-4 text-xs font-bold">
-          <span id="chartLegendLabel" class="flex items-center gap-1.5"><span id="chartLegendDot" class="w-2.5 h-2.5 rounded-full inline-block"></span> 🤖 IA</span>
-        </div>
-      </div>
-      <div class="h-72 w-full">
-        <canvas id="bankrollChart"></canvas>
       </div>
     </div>
 
@@ -344,24 +281,6 @@
             </div>
           </div>
 
-          <div id="surfaceContainer" class="hidden">
-            <label class="block font-semibold text-slate-600 mb-1">Surface</label>
-            <select id="surfaceInput" class="input-field w-full">
-              <option value="Dur">🎾 Dur</option>
-              <option value="Terre Battue">🧱 Terre Battue</option>
-              <option value="Gazon">🌱 Gazon</option>
-              <option value="Indoor">🏢 Indoor</option>
-            </select>
-          </div>
-
-          <div id="genreContainer" class="hidden">
-            <label class="block font-semibold text-slate-600 mb-1">Circuit</label>
-            <select id="genreInput" class="input-field w-full">
-              <option value="ATP">🚹 ATP</option>
-              <option value="WTA">🚺 WTA</option>
-            </select>
-          </div>
-
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Pronostic</label>
             <input type="text" id="pronoInput" placeholder="Ex: Victoire Baez" required class="input-field w-full">
@@ -406,14 +325,6 @@
               </button>
               <button onclick="setQuickFilter('Settled')" id="btnFilterSettled" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
                 ✅ Terminés (<span id="countSettled">0</span>)
-              </button>
-            </div>
-            <div id="genreFilterGroup" class="hidden bg-slate-100 p-1 rounded-xl items-center gap-1 border border-slate-200 shrink-0">
-              <button onclick="setGenreFilter('ATP')" id="btnFilterATP" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
-                🚹 ATP
-              </button>
-              <button onclick="setGenreFilter('WTA')" id="btnFilterWTA" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
-                🚺 WTA
               </button>
             </div>
           </div>
@@ -592,12 +503,11 @@
     let currentSport = 'football';
     let state = JSON.parse(localStorage.getItem('prono_tracker_multisport_data')) || { football: [], tennis: [] };
     
-    let chartInstance = null;
+    let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let currentQuickFilter = 'ALL';
     let currentCompFilters = new Set(); // multi-sélection : vide = tous les championnats
     let currentMarketFilter = null;
     let currentOddsFilter = null;
-    let currentGenreFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
     let lastDeletedBet = null;
     let undoTimeout = null;
@@ -605,7 +515,6 @@
     let editingBetId = null;
 
     const footballMarkets = ["1N2", "BTTS", "Over/Under", "Buteur", "Mi-Temps", "Handicap", "Autre"];
-    const tennisMarkets = ["Vainqueur 1/2", "Résultat Match", "Score Exact", "Handicap Jeux", "Handicap Sets", "Over/Under Jeux", "Nombre de Sets", "Autre"];
 
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
 
@@ -626,35 +535,9 @@
       render();
     }
 
-    function detectGenre(compStr) {
-      return /wta/i.test(compStr || '') ? 'WTA' : 'ATP';
-    }
 
-    function getTournamentCategory(compStr) {
-      if (!compStr) return 'Autre / Inconnu';
-      const text = compStr.trim();
-      
-      if (/grand\s*chelem|australian\s*open|roland\s*garros|wimbledon|us\s*open/i.test(text)) return 'Grand Chelem';
-      if (/m1000|masters\s*1000|atp\s*1000|wta\s*1000/i.test(text)) return 'M1000 / Masters 1000';
-      if (/atp\s*500|wta\s*500/i.test(text)) return 'ATP / WTA 500';
-      if (/atp\s*250|wta\s*250/i.test(text)) return 'ATP / WTA 250';
-      if (/masters\s*finals|atp\s*finals|wta\s*finals/i.test(text)) return 'Masters Finals';
-      if (/challenger/i.test(text)) return 'Challenger';
-      if (/wta/i.test(text)) return 'WTA (Circuit)';
-      if (/atp/i.test(text)) return 'ATP (Circuit)';
-      return text;
-    }
-
-    function applyTheme(sport) {
-      const isTennis = sport === 'tennis';
-
-      const theme = isTennis ? {
-        main: '#d97706', mainHover: '#b45309', iconColor: '#f59e0b',
-        cardBg: 'rgba(255, 251, 235, 0.6)', cardBorder: '#fef3c7', dividerBorder: 'rgba(254, 243, 199, 0.6)',
-        badgeBg: '#d97706',
-        boxFrom: '#fffbeb', boxTo: '#fff7ed', boxBorder: '#fde68a', boxText: '#78350f', boxHint: 'rgba(146, 64, 14, 0.7)',
-        shadowRgb: '217, 119, 6'
-      } : {
+    function applyTheme() {
+      const theme = {
         main: '#2563eb', mainHover: '#1d4ed8', iconColor: '#2563eb',
         cardBg: 'rgba(239, 246, 255, 0.6)', cardBorder: '#dbeafe', dividerBorder: 'rgba(219, 234, 254, 0.6)',
         badgeBg: '#2563eb',
@@ -668,10 +551,6 @@
         Object.assign(el.style, styles);
       };
 
-      // Onglet actif (l'onglet inactif retrouve sa couleur par défaut)
-      setStyle('tabFoot', { color: !isTennis ? theme.main : '' });
-      setStyle('tabTennis', { color: isTennis ? theme.main : '' });
-
       setStyle('perfIcon', { color: theme.iconColor });
       setStyle('perfCard', { backgroundColor: theme.cardBg, borderColor: theme.cardBorder });
       setStyle('perfDivider', { borderColor: theme.dividerBorder });
@@ -681,8 +560,6 @@
       setStyle('quickAddLabel', { color: theme.boxText });
       setStyle('quickAddHint', { color: theme.boxHint });
       setStyle('quickAddBtn', { backgroundColor: theme.main, boxShadow: `0 4px 10px rgba(${theme.shadowRgb}, 0.25)` });
-      setStyle('chartLegendDot', { backgroundColor: theme.main });
-      setStyle('chartLegendLabel', { color: theme.main });
 
       const btn = document.getElementById('quickAddBtn');
       if (btn) {
@@ -692,51 +569,25 @@
     }
 
     function switchSport(sport) {
-      currentSport = sport;
+      currentSport = 'football';
       currentCompFilters = new Set();
       currentMarketFilter = null;
       currentOddsFilter = null;
-      currentGenreFilter = null;
       editingBetId = null;
-      applyTheme(sport);
-      document.getElementById('tabFoot').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'football' ? 'active' : ''}`;
-      document.getElementById('tabTennis').className = `tab-btn px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${sport === 'tennis' ? 'active' : ''}`;
+      applyTheme();
 
       const marketSelect = document.getElementById('marketInput');
       marketSelect.innerHTML = '';
-      const markets = sport === 'football' ? footballMarkets : tennisMarkets;
+      const markets = footballMarkets;
 
-      if (sport === 'football') {
-        document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Football";
-        document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari Foot`;
-
-        document.getElementById('dailySectionTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Foot)`;
-
-        document.getElementById('labelMatch').textContent = "Match / Affiche";
-        document.getElementById('labelComp').textContent = "Championnat";
-        document.getElementById('matchInput').placeholder = "Ex: PSG vs OM";
-        document.getElementById('compInput').placeholder = "Ex: Ligue 1";
-        document.getElementById('surfaceContainer').classList.add('hidden');
-        document.getElementById('genreContainer').classList.add('hidden');
-        document.getElementById('genderStatsCard').classList.add('hidden');
-        document.getElementById('genreFilterGroup').classList.add('hidden');
-        document.getElementById('genreFilterGroup').classList.remove('flex');
-      } else {
-        document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA Tennis";
-        document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-500"></i> Ajouter un Pari Tennis (IA)`;
-
-        document.getElementById('dailySectionTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour (Tennis)`;
-
-        document.getElementById('labelMatch').textContent = "Affiche (Joueur A vs Joueur B)";
-        document.getElementById('labelComp').textContent = "Tournoi / Circuit";
-        document.getElementById('matchInput').placeholder = "Ex: Baez S. vs Bellucci M.";
-        document.getElementById('compInput').placeholder = "Ex: ATP Montréal (M1000)";
-        document.getElementById('surfaceContainer').classList.remove('hidden');
-        document.getElementById('genreContainer').classList.remove('hidden');
-        document.getElementById('genderStatsCard').classList.remove('hidden');
-        document.getElementById('genreFilterGroup').classList.remove('hidden');
-        document.getElementById('genreFilterGroup').classList.add('flex');
-      }
+      document.getElementById('headerSubtitle').textContent = "Suivi de performance : 🤖 Pronos IA";
+      document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari`;
+      document.getElementById('dailySectionTitle').innerHTML = `<i class="fa-solid fa-calendar-day text-emerald-600"></i> Bilan Quotidien Jour par Jour`;
+      document.getElementById('labelMatch').textContent = "Match / Affiche";
+      document.getElementById('labelComp').textContent = "Championnat";
+      document.getElementById('matchInput').placeholder = "Ex: PSG vs OM";
+      document.getElementById('compInput').placeholder = "Ex: Ligue 1";
+      document.getElementById('footballCategoryCard').classList.remove('hidden');
 
       markets.forEach(m => marketSelect.innerHTML += `<option value="${m}">${m}</option>`);
       populateCompFilterOptions();
@@ -870,10 +721,10 @@
     }
 
     function exportCSV() {
-      let csv = "Sport,ID,Source,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut,Circuit\n";
+      let csv = "Sport,ID,Source,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut\n";
       ['football', 'tennis'].forEach(sp => {
         (state[sp] || []).forEach(b => {
-          csv += `"${sp}","${b.id}","${b.source || 'AI'}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}","${b.genre || ''}"\n`;
+          csv += `"${sp}","${b.id}","${b.source || 'AI'}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}"\n`;
         });
       });
       const filename = `pronotracker_${new Date().toISOString().split('T')[0]}.csv`;
@@ -1030,7 +881,6 @@
 
             if (currentSport === 'tennis') {
               newBet.surface = document.getElementById('surfaceInput')?.value || 'Dur';
-              newBet.genre = detectGenre(compName);
             }
 
             if (isDuplicateBet(currentSport, newBet)) {
@@ -1133,7 +983,6 @@
 
         if (currentSport === 'tennis') {
           newBet.surface = document.getElementById('surfaceInput')?.value || 'Dur';
-          newBet.genre = detectGenre(comp);
         }
 
         if (isDuplicateBet(currentSport, newBet)) {
@@ -1237,7 +1086,6 @@
 
       if (currentSport === 'tennis') {
         newBet.surface = document.getElementById('surfaceInput').value;
-        newBet.genre = document.getElementById('genreInput').value;
       }
 
       state[currentSport].unshift(newBet);
@@ -1270,7 +1118,7 @@
 
       const editMarketSelect = document.getElementById('editMarket');
       editMarketSelect.innerHTML = '';
-      const markets = currentSport === 'football' ? footballMarkets : tennisMarkets;
+      const markets = footballMarkets;
       
       markets.forEach(m => {
         const option = document.createElement('option');
@@ -1312,7 +1160,7 @@
     }
 
     function marketOptionsHtml(selected) {
-      const markets = currentSport === 'football' ? footballMarkets : tennisMarkets;
+      const markets = footballMarkets;
       return markets.map(m => `<option value="${m}" ${m === selected ? 'selected' : ''}>${m}</option>`).join('');
     }
 
@@ -1341,11 +1189,6 @@
       if (!isNaN(newOdds) && newOdds > 1) bet.odds = newOdds;
       if (!isNaN(newStake) && newStake > 0) bet.stake = newStake;
 
-      if (currentSport === 'tennis') {
-        const genreEl = document.getElementById(`inlineGenre${suffix}-${id}`);
-        if (genreEl) bet.genre = genreEl.value;
-      }
-
       editingBetId = null;
       saveState();
     }
@@ -1363,15 +1206,6 @@
       btnPending.className = `px-3 py-1 rounded-lg transition ${filter === 'Pending' ? activeClass : inactiveClass}`;
       btnSettled.className = `px-3 py-1 rounded-lg transition ${filter === 'Settled' ? activeClass : inactiveClass}`;
 
-      render();
-    }
-
-    function setGenreFilter(genre) {
-      currentGenreFilter = (currentGenreFilter === genre) ? null : genre;
-      const activeClass = "bg-white text-slate-800 shadow-sm font-bold";
-      const inactiveClass = "text-slate-600 hover:text-slate-900 font-medium";
-      document.getElementById('btnFilterATP').className = `px-3 py-1 rounded-lg transition ${currentGenreFilter === 'ATP' ? activeClass : inactiveClass}`;
-      document.getElementById('btnFilterWTA').className = `px-3 py-1 rounded-lg transition ${currentGenreFilter === 'WTA' ? activeClass : inactiveClass}`;
       render();
     }
 
@@ -1456,9 +1290,6 @@
       return map;
     }
 
-    // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
-    // championnats cochés (si demandé), marché, tranche de cote, circuit ATP/WTA.
-    // Préserve l'ordre d'origine du tableau (utile pour les séries et le graphique cumulé).
     function populateCompFilterOptions() {
       const select = document.getElementById('filterComp');
       if (!select) return;
@@ -1474,6 +1305,9 @@
       select.value = comps.includes(previousValue) ? previousValue : 'ALL';
     }
 
+    // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
+    // championnats cochés (si demandé), marché, tranche de cote.
+    // Préserve l'ordre d'origine du tableau (utile pour les séries et le graphique cumulé).
     function getStatsFilteredBetsRaw(applyCompCheckboxFilter, applyQuickStatusFilter = true) {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -1524,7 +1358,7 @@
 
         let matchComp = true;
         if (applyCompCheckboxFilter && currentCompFilters.size > 0) {
-          const bCompKey = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié').trim();
+          const bCompKey = (b.comp || 'Non spécifié').trim();
           matchComp = currentCompFilters.has(bCompKey);
         }
 
@@ -1544,12 +1378,7 @@
           matchOdds = getOddsBracket(b.odds || 1) === currentOddsFilter;
         }
 
-        let matchGenre = true;
-        if (currentSport === 'tennis' && currentGenreFilter) {
-          matchGenre = (b.genre || 'ATP') === currentGenreFilter;
-        }
-
-        return matchSearch && matchQuick && matchPeriod && matchComp && matchHistoryComp && matchMarket && matchOdds && matchGenre;
+        return matchSearch && matchQuick && matchPeriod && matchComp && matchHistoryComp && matchMarket && matchOdds;
       });
     }
 
@@ -1718,28 +1547,23 @@
     function renderGroupedStats() {
       const currentList = state[currentSport] || [];
 
-      const compMap = {}, marketMap = {}, oddsMap = {};
+      const marketMap = {}, oddsMap = {};
 
       const oddsBracketOrder = ['1.00 – 1.49', '1.50 – 1.99', '2.00 et +'];
 
       currentList.forEach(b => {
         if (b.status === 'Pending') return;
-        
-        const compKey = (currentSport === 'tennis') 
-          ? getTournamentCategory(b.comp) 
-          : (b.comp || 'Non spécifié');
 
         const marketKey = b.market || 'Autre';
         const oddsKey = getOddsBracket(b.odds || 1);
 
-        if (!compMap[compKey]) compMap[compKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
         if (!marketMap[marketKey]) marketMap[marketKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
         if (!oddsMap[oddsKey]) oddsMap[oddsKey] = { total: 0, won: 0, lost: 0, stake: 0, profit: 0 };
 
         const stake = b.stake || 0;
         const odds = b.odds || 1;
 
-        [compMap[compKey], marketMap[marketKey], oddsMap[oddsKey]].forEach(target => {
+        [marketMap[marketKey], oddsMap[oddsKey]].forEach(target => {
           target.total++;
           target.stake += stake;
           if (b.status === 'Won') {
@@ -1794,49 +1618,8 @@
         }
       }
 
-      renderCompStatsTable(compMap);
       populateTable('marketStatsTbody', marketMap, 'market');
       populateTable('oddsStatsTbody', oddsMapOrdered, 'odds');
-    }
-
-    // Tableau "Stats par Championnat" : multi-sélection via cases à cocher.
-    // Cocher plusieurs lignes cumule leur bilan dans les cartes KPI du haut ;
-    // tout cocher (ou rien cocher) revient au bilan global.
-    function renderCompStatsTable(compMap) {
-      const tbody = document.getElementById('compStatsTbody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      const keys = Object.keys(compMap);
-
-      if (keys.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-slate-400 font-normal">Aucune donnée disponible.</td></tr>`;
-      } else {
-        keys.forEach(k => {
-          const item = compMap[k];
-          const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
-          const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
-          const profClass = item.profit > 0 ? 'text-emerald-600 font-extrabold' : item.profit < 0 ? 'text-rose-600 font-extrabold' : 'text-slate-700';
-          const isChecked = currentCompFilters.has(k);
-          const safeKey = k.replace(/'/g, "\\'");
-
-          tbody.innerHTML += `
-            <tr class="hover:bg-blue-50 transition ${isChecked ? 'bg-blue-50' : ''}">
-              <td class="p-2.5 text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCompFilterCheckbox('${safeKey}')"></td>
-              <td class="p-2.5 text-left font-bold text-slate-800 cursor-pointer" onclick="toggleCompFilterCheckbox('${safeKey}')">${k}</td>
-              <td class="p-2.5">${item.total}</td>
-              <td class="p-2.5">${winRate} %</td>
-              <td class="p-2.5 ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
-              <td class="p-2.5 ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
-            </tr>
-          `;
-        });
-      }
-
-      const selectAllBox = document.getElementById('compSelectAllCheckbox');
-      if (selectAllBox) {
-        selectAllBox.checked = keys.length > 0 && currentCompFilters.size === keys.length;
-        selectAllBox.indeterminate = currentCompFilters.size > 0 && currentCompFilters.size < keys.length;
-      }
     }
 
     function toggleCompFilterCheckbox(key) {
@@ -1846,59 +1629,327 @@
       renderGroupedStats();
     }
 
-    function toggleAllCompFilters(checkAll) {
-      const currentList = state[currentSport] || [];
-      const allKeys = new Set();
+    // Coche/décoche tous les championnats d'UNE catégorie (n'affecte pas les autres catégories).
+    function toggleCategoryAllCompFilters(slug, checkAll) {
+      const cat = FOOTBALL_CATEGORY_ORDER.find(c => footballCategorySlugs[c] === slug);
+      if (!cat) return;
+      const currentList = state.football || [];
+      const keys = new Set();
       currentList.forEach(b => {
         if (b.status === 'Pending') return;
-        const key = (currentSport === 'tennis') ? getTournamentCategory(b.comp) : (b.comp || 'Non spécifié');
-        allKeys.add(key);
+        if (getFootballCategory(b.comp) !== cat) return;
+        keys.add((b.comp || 'Non spécifié').trim());
       });
 
-      currentCompFilters = checkAll ? allKeys : new Set();
+      if (checkAll) keys.forEach(k => currentCompFilters.add(k));
+      else keys.forEach(k => currentCompFilters.delete(k));
+
       render();
       renderGroupedStats();
     }
 
-    function renderGenderStats() {
-      const tbody = document.getElementById('genderStatsTbody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      if (currentSport !== 'tennis') return;
+    // Classe un championnat de football dans l'une des 3 grandes catégories.
+    // Retourne null si le championnat ne correspond à aucune des 3 (auquel cas
+    // le pari n'apparaît pas dans ce bloc de synthèse, mais reste visible partout ailleurs).
+    function getFootballCategory(compStr) {
+      if (!compStr) return null;
+      const text = compStr.trim();
 
-      const currentList = state.tennis || [];
-      const genderMap = {
-        ATP: { total: 0, won: 0, lost: 0, stake: 0, profit: 0 },
-        WTA: { total: 0, won: 0, lost: 0, stake: 0, profit: 0 }
-      };
+      // Les coupes européennes sont vérifiées avant "Ligue 1/2" pour éviter tout
+      // conflit avec "Ligue des Champions" / "Ligue Europa".
+      if (/champions\s*league|ligue\s+des\s+champions|europa\s+league|ligue\s+europa|conf[ée]rence\s+league/i.test(text)) {
+        return 'Coupes Européennes';
+      }
+      if (/premier\s+league|la\s+liga|serie\s+a|bundesliga|ligue\s+1\b/i.test(text)) {
+        return 'Top 5 Européen';
+      }
+      if (/ligue\s+2\b|national\b/i.test(text)) {
+        return 'L2 / National';
+      }
+      return null;
+    }
 
-      currentList.forEach(b => {
-        if (b.status === 'Pending') return;
-        const key = (b.genre === 'WTA') ? 'WTA' : 'ATP';
-        const target = genderMap[key];
-        const stake = b.stake || 0;
-        const odds = b.odds || 1;
-        target.total++;
-        target.stake += stake;
-        if (b.status === 'Won') { target.won++; target.profit += (odds - 1) * stake; }
-        else if (b.status === 'Lost') { target.lost++; target.profit -= stake; }
-      });
+    const FOOTBALL_CATEGORY_ORDER = ['Top 5 Européen', 'Coupes Européennes', 'L2 / National'];
+    const footballCategorySlugs = { 'Top 5 Européen': 'top5', 'Coupes Européennes': 'coupes', 'L2 / National': 'l2national' };
+    const footballCategoryColors = { 'Top 5 Européen': '#2563eb', 'Coupes Européennes': '#d97706', 'L2 / National': '#059669' };
+    let categoryAccordionOpen = {}; // état ouvert/fermé de chaque accordéon, conservé entre les rendus
 
-      ['ATP', 'WTA'].forEach(key => {
-        const item = genderMap[key];
+    function toggleCategoryAccordion(slug) {
+      categoryAccordionOpen[slug] = !categoryAccordionOpen[slug];
+      renderFootballCategoryStats();
+    }
+
+    // Construit un petit tableau (Joués/Réussite/Profit/ROI) pour une sous-répartition
+    // (par marché ou par tranche de cote) à l'intérieur d'un bloc de catégorie.
+    function buildMiniStatsTable(map, orderedKeys) {
+      const keys = orderedKeys ? orderedKeys.filter(k => map[k]) : Object.keys(map);
+      if (keys.length === 0) {
+        return `<p class="text-[11px] text-slate-400 italic">Aucune donnée.</p>`;
+      }
+      const rows = keys.map(k => {
+        const item = map[k];
         const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
         const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
-        const profClass = item.profit > 0 ? 'text-emerald-600 font-extrabold' : item.profit < 0 ? 'text-rose-600 font-extrabold' : 'text-slate-700';
-        const icon = key === 'ATP' ? '🚹' : '🚺';
-        tbody.innerHTML += `
+        const profClass = item.profit > 0 ? 'text-emerald-600 font-bold' : item.profit < 0 ? 'text-rose-600 font-bold' : 'text-slate-700';
+        return `
           <tr class="hover:bg-slate-50 transition">
-            <td class="p-2.5 text-left font-bold text-slate-800">${icon} ${key}</td>
-            <td class="p-2.5">${item.total}</td>
-            <td class="p-2.5">${winRate} %</td>
-            <td class="p-2.5 ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
-            <td class="p-2.5 ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
-          </tr>
-        `;
+            <td class="p-1.5 text-left font-semibold text-slate-700">${k}</td>
+            <td class="p-1.5 text-center">${item.total}</td>
+            <td class="p-1.5 text-center">${winRate} %</td>
+            <td class="p-1.5 text-center ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
+            <td class="p-1.5 text-center ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <table class="w-full text-[11px]">
+          <thead>
+            <tr class="text-slate-400 font-bold border-b border-slate-100">
+              <th class="p-1.5 text-left">—</th>
+              <th class="p-1.5">Joués</th>
+              <th class="p-1.5">Réussite</th>
+              <th class="p-1.5">Profit</th>
+              <th class="p-1.5">ROI</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">${rows}</tbody>
+        </table>`;
+    }
+
+    // Construit le sous-tableau "Par Championnat" (avec cases à cocher) à l'intérieur
+    // d'un bloc de catégorie. Cocher une ou plusieurs lignes filtre le Bilan du haut
+    // (currentCompFilters est global et partagé entre toutes les catégories).
+    function buildCompCheckboxTable(bets, slug) {
+      const compMap = {};
+      bets.forEach(b => {
+        const key = (b.comp || 'Non spécifié').trim();
+        if (!compMap[key]) compMap[key] = { total: 0, won: 0, stake: 0, profit: 0 };
+        const t = compMap[key];
+        const s = b.stake || 0, o = b.odds || 1;
+        t.total++; t.stake += s;
+        if (b.status === 'Won') { t.won++; t.profit += (o - 1) * s; }
+        else if (b.status === 'Lost') { t.profit -= s; }
+      });
+
+      const keys = Object.keys(compMap).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+      if (keys.length === 0) {
+        return `<p class="text-[11px] text-slate-400 italic">Aucune donnée.</p>`;
+      }
+
+      const rows = keys.map(k => {
+        const item = compMap[k];
+        const isChecked = currentCompFilters.has(k);
+        const winRate = item.total > 0 ? ((item.won / item.total) * 100).toFixed(1) : '0.0';
+        const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
+        const profClass = item.profit > 0 ? 'text-emerald-600 font-bold' : item.profit < 0 ? 'text-rose-600 font-bold' : 'text-slate-700';
+        const safeKey = k.replace(/'/g, "\\'");
+        return `
+          <tr class="hover:bg-blue-50 transition ${isChecked ? 'bg-blue-50' : ''}">
+            <td class="p-1.5 text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCompFilterCheckbox('${safeKey}')"></td>
+            <td class="p-1.5 text-left font-semibold text-slate-700 cursor-pointer" onclick="toggleCompFilterCheckbox('${safeKey}')">${k}</td>
+            <td class="p-1.5 text-center">${item.total}</td>
+            <td class="p-1.5 text-center">${winRate} %</td>
+            <td class="p-1.5 text-center ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
+            <td class="p-1.5 text-center ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <table class="w-full text-[11px]">
+          <thead>
+            <tr class="text-slate-400 font-bold border-b border-slate-100">
+              <th class="p-1.5 text-center w-6"><input type="checkbox" id="compSelectAll-${slug}" onchange="toggleCategoryAllCompFilters('${slug}', this.checked)" title="Tout cocher / tout décocher"></th>
+              <th class="p-1.5 text-left">Championnat</th>
+              <th class="p-1.5">Joués</th>
+              <th class="p-1.5">Réussite</th>
+              <th class="p-1.5">Profit</th>
+              <th class="p-1.5">ROI</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">${rows}</tbody>
+        </table>`;
+    }
+
+    function renderFootballCategoryStats() {
+      const container = document.getElementById('footballCategoryAccordion');
+      if (!container) return;
+      if (currentSport !== 'football') { container.innerHTML = ''; return; }
+
+      // Détruit les graphiques existants avant de reconstruire le HTML (les canvas vont être remplacés).
+      Object.values(categoryChartInstances).forEach(inst => { if (inst) inst.destroy(); });
+      categoryChartInstances = {};
+
+      const currentList = state.football || [];
+      const oddsBracketOrder = ['1.00 – 1.49', '1.50 – 1.99', '2.00 et +'];
+      const chartNumbers = getBetChartNumbers();
+      const betsBySlug = {}; // conservé pour instancier les graphiques après insertion du HTML
+
+      container.innerHTML = FOOTBALL_CATEGORY_ORDER.map(cat => {
+        const slug = footballCategorySlugs[cat];
+        const bets = currentList.filter(b => b.status !== 'Pending' && getFootballCategory(b.comp) === cat);
+        betsBySlug[slug] = bets;
+
+        let total = 0, won = 0, stake = 0, profit = 0, oddsSum = 0;
+        const marketMap = {};
+        const oddsMap = {};
+
+        bets.forEach(b => {
+          const s = b.stake || 0;
+          const o = b.odds || 1;
+          total++;
+          oddsSum += o;
+          stake += s;
+
+          const marketKey = b.market || 'Autre';
+          const oddsKey = getOddsBracket(o);
+          if (!marketMap[marketKey]) marketMap[marketKey] = { total: 0, won: 0, stake: 0, profit: 0 };
+          if (!oddsMap[oddsKey]) oddsMap[oddsKey] = { total: 0, won: 0, stake: 0, profit: 0 };
+
+          [marketMap[marketKey], oddsMap[oddsKey]].forEach(t => { t.total++; t.stake += s; });
+
+          if (b.status === 'Won') {
+            won++;
+            const gain = (o - 1) * s;
+            profit += gain;
+            marketMap[marketKey].won++; marketMap[marketKey].profit += gain;
+            oddsMap[oddsKey].won++; oddsMap[oddsKey].profit += gain;
+          } else if (b.status === 'Lost') {
+            profit -= s;
+            marketMap[marketKey].profit -= s;
+            oddsMap[oddsKey].profit -= s;
+          }
+        });
+
+        const winRate = total > 0 ? ((won / total) * 100).toFixed(1) : '0.0';
+        const avgOdds = total > 0 ? (oddsSum / total).toFixed(2) : '1.00';
+        const roi = stake > 0 ? ((profit / stake) * 100).toFixed(1) : '0.0';
+        const profClass = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-rose-600' : 'text-slate-800';
+        const isOpen = !!categoryAccordionOpen[slug];
+
+        const catColor = footballCategoryColors[cat];
+
+        return `
+          <div class="card overflow-hidden" style="border-left: 4px solid ${catColor};">
+            <button type="button" onclick="toggleCategoryAccordion('${slug}')" class="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-slate-50 transition">
+              <span class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group" style="color: ${catColor};"></i> ${cat}
+              </span>
+              <span class="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
+                <span class="hidden sm:inline">${total} pari(s)</span>
+                <span class="${profClass} font-bold">${profit >= 0 ? '+' : ''}${profit.toFixed(2)} €</span>
+                <span class="${profClass}">ROI ${roi >= 0 ? '+' : ''}${roi} %</span>
+                <i class="fa-solid fa-chevron-${isOpen ? 'up' : 'down'} text-slate-400"></i>
+              </span>
+            </button>
+            <div class="${isOpen ? '' : 'hidden'} px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                <div><span class="text-[9px] font-bold text-slate-400 uppercase block">Joués</span><span class="text-sm font-black text-slate-800">${total}</span></div>
+                <div><span class="text-[9px] font-bold text-slate-400 uppercase block">Réussite</span><span class="text-sm font-black text-slate-800">${winRate} %</span></div>
+                <div><span class="text-[9px] font-bold text-slate-400 uppercase block">Cote Moy.</span><span class="text-sm font-black text-slate-800">${avgOdds}</span></div>
+                <div><span class="text-[9px] font-bold text-slate-400 uppercase block">Profit Net</span><span class="text-sm font-black ${profClass}">${profit >= 0 ? '+' : ''}${profit.toFixed(2)} €</span></div>
+                <div><span class="text-[9px] font-bold text-slate-400 uppercase block">ROI</span><span class="text-sm font-black ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</span></div>
+              </div>
+              ${isOpen ? `
+              <div>
+                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Évolution Cumulée</h4>
+                <div class="h-40 w-full">
+                  <canvas id="categoryChart-${slug}"></canvas>
+                </div>
+              </div>` : ''}
+              <div>
+                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Par Championnat</h4>
+                <div class="overflow-x-auto">${buildCompCheckboxTable(bets, slug)}</div>
+              </div>
+              <div>
+                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Par Type de Prono</h4>
+                <div class="overflow-x-auto">${buildMiniStatsTable(marketMap)}</div>
+              </div>
+              <div>
+                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Par Tranche de Cote</h4>
+                <div class="overflow-x-auto">${buildMiniStatsTable(oddsMap, oddsBracketOrder)}</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Instancie un mini-graphique uniquement pour les accordéons actuellement ouverts.
+      FOOTBALL_CATEGORY_ORDER.forEach(cat => {
+        const slug = footballCategorySlugs[cat];
+        if (!categoryAccordionOpen[slug]) return;
+        const canvas = document.getElementById(`categoryChart-${slug}`);
+        if (canvas) renderCategoryChart(slug, canvas, betsBySlug[slug], footballCategoryColors[cat], chartNumbers);
+
+        // État "tout coché / partiellement coché" de la case globale de la catégorie.
+        const selectAllBox = document.getElementById(`compSelectAll-${slug}`);
+        if (selectAllBox) {
+          const catKeys = new Set((betsBySlug[slug] || []).map(b => (b.comp || 'Non spécifié').trim()));
+          const checkedCount = [...catKeys].filter(k => currentCompFilters.has(k)).length;
+          selectAllBox.checked = catKeys.size > 0 && checkedCount === catKeys.size;
+          selectAllBox.indeterminate = checkedCount > 0 && checkedCount < catKeys.size;
+        }
+      });
+    }
+
+    // Trace l'évolution cumulée du profit pour une seule catégorie, dans son mini-graphique.
+    function renderCategoryChart(slug, canvas, bets, color, chartNumbers) {
+      const ctx = canvas.getContext('2d');
+      const sortedBets = [...bets].reverse(); // bets déjà filtrés (non-pending + catégorie), remis en ordre chronologique
+
+      let cum = 0;
+      const labels = ["Début"];
+      const data = [0];
+
+      sortedBets.forEach(b => {
+        let change = 0;
+        if (b.status === 'Won') change = ((b.odds || 1) - 1) * (b.stake || 0);
+        else if (b.status === 'Lost') change = -(b.stake || 0);
+        cum += change;
+        labels.push(`#${chartNumbers[b.id]}`);
+        data.push(parseFloat(cum.toFixed(2)));
+      });
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+      gradient.addColorStop(0, hexToRgba(color, 0.15));
+      gradient.addColorStop(1, hexToRgba(color, 0));
+
+      categoryChartInstances[slug] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            borderColor: color,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements.length > 0) {
+              const idx = elements[0].index;
+              if (idx > 0) {
+                const betNum = parseInt(labels[idx].replace('#', ''), 10);
+                if (!isNaN(betNum)) filterByBetNumber(betNum);
+              }
+            }
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length > 0 && elements[0].index > 0 ? 'pointer' : 'default';
+          },
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 9, weight: 'bold' } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 9, weight: 'bold' } } }
+          }
+        }
       });
     }
 
@@ -1966,7 +2017,6 @@
         currentCompFilters.size > 0 ||
         currentMarketFilter ||
         currentOddsFilter ||
-        currentGenreFilter ||
         search !== '' ||
         period !== 'ALL' ||
         historyComp !== 'ALL'
@@ -1977,19 +2027,12 @@
       currentCompFilters = new Set();
       currentMarketFilter = null;
       currentOddsFilter = null;
-      currentGenreFilter = null;
 
       document.getElementById('searchInput').value = '';
       document.getElementById('filterPeriod').value = 'ALL';
       document.getElementById('customDateRange').classList.add('hidden');
       const compSelect = document.getElementById('filterComp');
       if (compSelect) compSelect.value = 'ALL';
-
-      const inactiveClass = "text-slate-600 hover:text-slate-900 font-medium";
-      const btnATP = document.getElementById('btnFilterATP');
-      const btnWTA = document.getElementById('btnFilterWTA');
-      if (btnATP) btnATP.className = `px-3 py-1 rounded-lg transition ${inactiveClass}`;
-      if (btnWTA) btnWTA.className = `px-3 py-1 rounded-lg transition ${inactiveClass}`;
 
       setQuickFilter('ALL'); // appelle déjà render()
     }
@@ -2080,14 +2123,6 @@
                   <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Mise (€)</label>
                   <input type="number" step="0.01" min="0.01" id="inlineStake-${b.id}" value="${b.stake || 0}" class="input-field w-full text-xs font-black">
                 </div>
-                ${currentSport === 'tennis' ? `
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Circuit</label>
-                  <select id="inlineGenre-${b.id}" class="input-field w-full text-xs">
-                    <option value="ATP" ${(b.genre || 'ATP') === 'ATP' ? 'selected' : ''}>🚹 ATP</option>
-                    <option value="WTA" ${b.genre === 'WTA' ? 'selected' : ''}>🚺 WTA</option>
-                  </select>
-                </div>` : ''}
                 <div class="col-span-2">
                   <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Match</label>
                   <input type="text" id="inlineMatch-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs font-bold">
@@ -2153,14 +2188,6 @@
                 <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Match</label>
                 <input type="text" id="inlineMatchM-${b.id}" value="${escAttr(b.match)}" class="input-field w-full text-xs font-bold">
               </div>
-              ${currentSport === 'tennis' ? `
-              <div>
-                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Circuit</label>
-                <select id="inlineGenreM-${b.id}" class="input-field w-full text-xs">
-                  <option value="ATP" ${(b.genre || 'ATP') === 'ATP' ? 'selected' : ''}>🚹 ATP</option>
-                  <option value="WTA" ${b.genre === 'WTA' ? 'selected' : ''}>🚺 WTA</option>
-                </select>
-              </div>` : ''}
               <div>
                 <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Compétition</label>
                 <input type="text" id="inlineCompM-${b.id}" value="${escAttr(b.comp)}" class="input-field w-full text-xs">
@@ -2236,90 +2263,14 @@
       renderPerformanceStats();
       renderDailyStats();
       renderGroupedStats();
-      renderGenderStats();
-      renderChart();
+      renderFootballCategoryStats();
     }
 
-    function renderChart() {
-      const ctx = document.getElementById('bankrollChart').getContext('2d');
-
-      // Le graphique suit la même logique que le Bilan en haut : tous les filtres actifs
-      // (recherche, période, statut, marché, cote, circuit, championnats cochés).
-      const compFilteredList = getStatsFilteredBets();
-
-      const sortedBets = [...compFilteredList].reverse();
-      const chartNumbers = getBetChartNumbers(); // numérotation globale, indépendante du filtre championnat
-      
-      let aiCum = 0;
-
-      let labels = ["Début"];
-      let aiData = [0];
-
-      sortedBets.forEach(b => {
-        if (b.status === 'Pending') return;
-
-        let profitChange = 0;
-        if (b.status === 'Won') profitChange = ((b.odds || 1) - 1) * (b.stake || 0);
-        else if (b.status === 'Lost') profitChange = -(b.stake || 0);
-
-        aiCum += profitChange;
-
-        labels.push(`#${chartNumbers[b.id]}`);
-        aiData.push(parseFloat(aiCum.toFixed(2)));
-      });
-
-      if (chartInstance) chartInstance.destroy();
-
-      const sportColor = currentSport === 'tennis' ? { r: 217, g: 119, b: 6, hex: '#d97706' } : { r: 37, g: 99, b: 235, hex: '#2563eb' };
-
-      const gradientAI = ctx.createLinearGradient(0, 0, 0, 300);
-      gradientAI.addColorStop(0, `rgba(${sportColor.r}, ${sportColor.g}, ${sportColor.b}, 0.15)`);
-      gradientAI.addColorStop(1, `rgba(${sportColor.r}, ${sportColor.g}, ${sportColor.b}, 0.0)`);
-
-      const datasets = [
-        {
-          label: '🤖 IA (€)',
-          data: aiData,
-          borderColor: sportColor.hex,
-          backgroundColor: gradientAI,
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointRadius: 3,
-          pointHoverRadius: 6
-        }
-      ];
-
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: datasets
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          onClick: (evt, elements) => {
-            if (elements.length > 0) {
-              const idx = elements[0].index;
-              if (idx > 0) {
-                const betNum = parseInt(labels[idx].replace('#', ''), 10);
-                if (!isNaN(betNum)) filterByBetNumber(betNum);
-              }
-            }
-          },
-          onHover: (evt, elements) => {
-            evt.native.target.style.cursor = elements.length > 0 && elements[0].index > 0 ? 'pointer' : 'default';
-          },
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } } },
-            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } } }
-          }
-        }
-      });
+    function hexToRgba(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
     window.onload = function() { switchSport('football'); };
