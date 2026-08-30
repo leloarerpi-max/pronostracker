@@ -1629,6 +1629,16 @@
       renderGroupedStats();
     }
 
+    // Filtre l'Historique sur un championnat précis (paris en cours + terminés confondus)
+    // et y amène l'utilisateur. N'affecte pas les cases à cocher du Bilan.
+    function viewCompInHistory(key) {
+      const select = document.getElementById('filterComp');
+      if (select) select.value = key;
+      setQuickFilter('ALL'); // au cas où "En cours"/"Terminés" était actif ; déclenche déjà le rendu
+      const list = document.getElementById('betsTbody');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     // Coche/décoche tous les championnats d'UNE catégorie (n'affecte pas les autres catégories).
     function toggleCategoryAllCompFilters(slug, checkAll) {
       const cat = FOOTBALL_CATEGORY_ORDER.find(c => footballCategorySlugs[c] === slug);
@@ -1750,7 +1760,7 @@
           <tr class="hover:bg-blue-50 transition ${isChecked ? 'bg-blue-50' : ''}">
             <td class="p-1.5 text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCompFilterCheckbox('${safeKey}')"></td>
             <td class="p-1.5 text-left font-semibold text-slate-700 cursor-pointer" onclick="toggleCompFilterCheckbox('${safeKey}')">${k}</td>
-            <td class="p-1.5 text-center">${item.total}</td>
+            <td class="p-1.5 text-center"><span class="text-blue-600 font-bold cursor-pointer hover:underline" onclick="viewCompInHistory('${safeKey}')" title="Voir ces paris dans l'historique (en cours + terminés)">${item.total}</span></td>
             <td class="p-1.5 text-center">${winRate} %</td>
             <td class="p-1.5 text-center ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
             <td class="p-1.5 text-center ${profClass}">${roi >= 0 ? '+' : ''}${roi} %</td>
