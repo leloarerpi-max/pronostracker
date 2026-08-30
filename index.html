@@ -1633,11 +1633,14 @@
     function toggleCategoryAllCompFilters(slug, checkAll) {
       const cat = FOOTBALL_CATEGORY_ORDER.find(c => footballCategorySlugs[c] === slug);
       if (!cat) return;
+      const isOther = cat === 'Autres / Non classés';
       const currentList = state.football || [];
       const keys = new Set();
       currentList.forEach(b => {
         if (b.status === 'Pending') return;
-        if (getFootballCategory(b.comp) !== cat) return;
+        const bCat = getFootballCategory(b.comp);
+        const matches = isOther ? (bCat === null) : (bCat === cat);
+        if (!matches) return;
         keys.add((b.comp || 'Non spécifié').trim());
       });
 
@@ -1657,7 +1660,7 @@
 
       // Les coupes européennes sont vérifiées avant "Ligue 1/2" pour éviter tout
       // conflit avec "Ligue des Champions" / "Ligue Europa".
-      if (/champions\s*league|ligue\s+des\s+champions|europa\s+league|ligue\s+europa|conf[ée]rence\s+league/i.test(text)) {
+      if (/champions\s*league|ligue\s+des\s+champions|europa\s+league|ligue\s+europa|conf[ée]rence\s+league|ligue\s+conf[ée]rence/i.test(text)) {
         return 'Coupes Européennes';
       }
       if (/premier\s+league|la\s*liga|primera\s*divisi[oó]n|\bliga\b(?!\s*(portugal|mx|argentina|femenina))|serie\s+a|bundesliga|ligue\s+1\b/i.test(text)) {
@@ -1669,9 +1672,9 @@
       return null;
     }
 
-    const FOOTBALL_CATEGORY_ORDER = ['Top 5 Européen', 'Coupes Européennes', 'L2 / National'];
-    const footballCategorySlugs = { 'Top 5 Européen': 'top5', 'Coupes Européennes': 'coupes', 'L2 / National': 'l2national' };
-    const footballCategoryColors = { 'Top 5 Européen': '#2563eb', 'Coupes Européennes': '#d97706', 'L2 / National': '#059669' };
+    const FOOTBALL_CATEGORY_ORDER = ['Top 5 Européen', 'Coupes Européennes', 'L2 / National', 'Autres / Non classés'];
+    const footballCategorySlugs = { 'Top 5 Européen': 'top5', 'Coupes Européennes': 'coupes', 'L2 / National': 'l2national', 'Autres / Non classés': 'autres' };
+    const footballCategoryColors = { 'Top 5 Européen': '#2563eb', 'Coupes Européennes': '#d97706', 'L2 / National': '#059669', 'Autres / Non classés': '#64748b' };
     let categoryAccordionOpen = {}; // état ouvert/fermé de chaque accordéon, conservé entre les rendus
 
     function toggleCategoryAccordion(slug) {
@@ -1786,7 +1789,12 @@
 
       container.innerHTML = FOOTBALL_CATEGORY_ORDER.map(cat => {
         const slug = footballCategorySlugs[cat];
-        const bets = currentList.filter(b => b.status !== 'Pending' && getFootballCategory(b.comp) === cat);
+        const isOther = cat === 'Autres / Non classés';
+        const bets = currentList.filter(b => {
+          if (b.status === 'Pending') return false;
+          const bCat = getFootballCategory(b.comp);
+          return isOther ? (bCat === null) : (bCat === cat);
+        });
         betsBySlug[slug] = bets;
 
         let total = 0, won = 0, stake = 0, profit = 0, oddsSum = 0;
@@ -1832,7 +1840,7 @@
           <div class="card overflow-hidden" style="border-left: 4px solid ${catColor};">
             <button type="button" onclick="toggleCategoryAccordion('${slug}')" class="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-slate-50 transition">
               <span class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-layer-group" style="color: ${catColor};"></i> ${cat}
+                <i class="fa-solid ${isOther ? 'fa-circle-question' : 'fa-layer-group'}" style="color: ${catColor};"></i> ${cat}
               </span>
               <span class="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
                 <span class="hidden sm:inline">${total} pari(s)</span>
