@@ -518,8 +518,13 @@
     
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let currentQuickFilter = 'ALL';
-    let currentCompFilters = new Set(); // multi-sélection : vide = tous les championnats
+    // multi-sélection : vide = tous les championnats. Persistée pour survivre à un rechargement de page.
+    let currentCompFilters = new Set(JSON.parse(localStorage.getItem('pronotracker_compFilters') || '[]'));
     let compFilterMode = localStorage.getItem('pronotracker_compFilterMode') || 'include'; // 'include' ou 'exclude'
+
+    function saveCompFiltersToStorage() {
+      localStorage.setItem('pronotracker_compFilters', JSON.stringify(Array.from(currentCompFilters)));
+    }
     let currentMarketFilter = null;
     let currentOddsFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
@@ -568,6 +573,7 @@
 
     function resetCompFilters() {
       currentCompFilters = new Set();
+      saveCompFiltersToStorage();
       render();
       renderGroupedStats();
     }
@@ -606,7 +612,9 @@
 
     function switchSport(sport) {
       currentSport = 'football';
-      currentCompFilters = new Set();
+      // Ne PAS réinitialiser currentCompFilters ici : cette fonction sert aussi d'init au
+      // chargement de la page (window.onload), et les championnats inclus/exclus doivent
+      // survivre à un rechargement.
       currentMarketFilter = null;
       currentOddsFilter = null;
       editingBetId = null;
@@ -1668,6 +1676,7 @@
     function toggleCompFilterCheckbox(key) {
       if (currentCompFilters.has(key)) currentCompFilters.delete(key);
       else currentCompFilters.add(key);
+      saveCompFiltersToStorage();
       render();
       renderGroupedStats();
     }
@@ -1700,6 +1709,7 @@
       if (checkAll) keys.forEach(k => currentCompFilters.add(k));
       else keys.forEach(k => currentCompFilters.delete(k));
 
+      saveCompFiltersToStorage();
       render();
       renderGroupedStats();
     }
@@ -2108,6 +2118,7 @@
 
     function resetAllStatsFilters() {
       currentCompFilters = new Set();
+      saveCompFiltersToStorage();
       currentMarketFilter = null;
       currentOddsFilter = null;
 
