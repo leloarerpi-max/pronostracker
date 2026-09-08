@@ -199,6 +199,7 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="card p-5 space-y-3">
+          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
             <i class="fa-solid fa-bullseye text-blue-600"></i> Stats par Type de Prono (Marché)
           </h3>
           <div class="overflow-x-auto">
@@ -1353,7 +1354,7 @@
     // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
     // championnats cochés (si demandé), marché, tranche de cote.
     // Préserve l'ordre d'origine du tableau (utile pour les séries et le graphique cumulé).
-    function getStatsFilteredBetsRaw(applyCompCheckboxFilter, applyQuickStatusFilter = true) {
+    function getStatsFilteredBetsRaw(applyCompCheckboxFilter, applyQuickStatusFilter = true, applyMarketOddsFilter = true) {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const chartNumbers = getBetChartNumbers();
@@ -1421,12 +1422,12 @@
         }
 
         let matchMarket = true;
-        if (currentMarketFilter) {
+        if (applyMarketOddsFilter && currentMarketFilter) {
           matchMarket = (b.market || 'Autre') === currentMarketFilter;
         }
 
         let matchOdds = true;
-        if (currentOddsFilter) {
+        if (applyMarketOddsFilter && currentOddsFilter) {
           matchOdds = getOddsBracket(b.odds || 1) === currentOddsFilter;
         }
 
@@ -1441,6 +1442,15 @@
     // qu'à naviguer dans l'Historique, pas à restreindre le Bilan.
     function getStatsFilteredBets() {
       return getStatsFilteredBetsRaw(true, false);
+    }
+
+    // Source des tableaux "Stats par Type de Prono" et "Stats par Tranche de Cote" : mêmes
+    // filtres actifs que le Bilan (recherche, période, championnats inclus/exclus, circuit),
+    // mais SANS filtrer par marché/cote — ces deux tableaux construisent eux-mêmes ces
+    // répartitions, donc s'auto-filtrer les viderait. Le statut Tous/En cours/Terminés est
+    // ignoré aussi, comme pour le Bilan (seuls les paris terminés sont comptés plus bas).
+    function getGroupedStatsSourceBets() {
+      return getStatsFilteredBetsRaw(true, false, false);
     }
 
     function getFilteredAndSortedBets(applyCompCheckboxFilter = false) {
@@ -1597,7 +1607,7 @@
     }
 
     function renderGroupedStats() {
-      const currentList = state[currentSport] || [];
+      const currentList = getGroupedStatsSourceBets();
 
       const marketMap = {}, oddsMap = {};
 
