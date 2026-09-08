@@ -105,9 +105,22 @@
     </div>
 
     <div id="footballCategoryCard" class="hidden space-y-3">
-      <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-        <i class="fa-solid fa-layer-group text-blue-600"></i> Stats par Catégorie de Championnat
-      </h3>
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
+          <i class="fa-solid fa-layer-group text-blue-600"></i> Stats par Catégorie de Championnat
+        </h3>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">Mode des cases à cocher :</span>
+          <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+            <button onclick="setCompFilterMode('include')" id="btnCompModeInclude" class="px-3 py-1 rounded-lg transition text-[11px] font-bold whitespace-nowrap" title="Cocher un championnat = ne garder que celui-ci dans le Bilan">
+              ✅ Inclure
+            </button>
+            <button onclick="setCompFilterMode('exclude')" id="btnCompModeExclude" class="px-3 py-1 rounded-lg transition text-[11px] font-bold whitespace-nowrap" title="Cocher un championnat = le retirer du Bilan (les autres restent inclus)">
+              🚫 Exclure
+            </button>
+          </div>
+        </div>
+      </div>
       <div id="footballCategoryAccordion" class="space-y-3"></div>
     </div>
 
@@ -506,6 +519,7 @@
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let currentQuickFilter = 'ALL';
     let currentCompFilters = new Set(); // multi-sélection : vide = tous les championnats
+    let compFilterMode = localStorage.getItem('pronotracker_compFilterMode') || 'include'; // 'include' ou 'exclude'
     let currentMarketFilter = null;
     let currentOddsFilter = null;
     let currentSort = { field: 'date', dir: 'desc' };
@@ -535,6 +549,28 @@
       render();
     }
 
+    function setCompFilterMode(mode) {
+      compFilterMode = mode;
+      localStorage.setItem('pronotracker_compFilterMode', mode);
+      updateCompFilterModeButtons();
+      render();
+      renderGroupedStats();
+    }
+
+    function updateCompFilterModeButtons() {
+      const activeClass = "bg-white text-slate-800 shadow-sm";
+      const inactiveClass = "text-slate-500 hover:text-slate-800";
+      const inc = document.getElementById('btnCompModeInclude');
+      const exc = document.getElementById('btnCompModeExclude');
+      if (inc) inc.className = `px-3 py-1 rounded-lg transition text-[11px] font-bold whitespace-nowrap ${compFilterMode === 'include' ? activeClass : inactiveClass}`;
+      if (exc) exc.className = `px-3 py-1 rounded-lg transition text-[11px] font-bold whitespace-nowrap ${compFilterMode === 'exclude' ? activeClass : inactiveClass}`;
+    }
+
+    function resetCompFilters() {
+      currentCompFilters = new Set();
+      render();
+      renderGroupedStats();
+    }
 
     function applyTheme() {
       const theme = {
@@ -575,6 +611,7 @@
       currentOddsFilter = null;
       editingBetId = null;
       applyTheme();
+      updateCompFilterModeButtons();
 
       const marketSelect = document.getElementById('marketInput');
       marketSelect.innerHTML = '';
@@ -1356,10 +1393,17 @@
           if (dateTo && betDateStr > dateTo) matchPeriod = false;
         }
 
+        // Filtre par championnats cochés dans "Stats par Championnat".
+        // Mode "include" (par défaut) : coché = seuls les championnats cochés sont gardés.
+        // Mode "exclude" : coché = ce championnat est retiré du Bilan, tout le reste reste inclus.
         let matchComp = true;
         if (applyCompCheckboxFilter && currentCompFilters.size > 0) {
           const bCompKey = (b.comp || 'Non spécifié').trim();
-          matchComp = currentCompFilters.has(bCompKey);
+          if (compFilterMode === 'exclude') {
+            matchComp = !currentCompFilters.has(bCompKey);
+          } else {
+            matchComp = currentCompFilters.has(bCompKey);
+          }
         }
 
         let matchHistoryComp = true;
@@ -1570,7 +1614,6 @@
             target.won++;
             target.profit += (odds - 1) * stake;
           } else if (b.status === 'Lost') {
-            target.lost++;
             target.profit -= stake;
           }
         });
@@ -1732,6 +1775,8 @@
     // Construit le sous-tableau "Par Championnat" (avec cases à cocher) à l'intérieur
     // d'un bloc de catégorie. Cocher une ou plusieurs lignes filtre le Bilan du haut
     // (currentCompFilters est global et partagé entre toutes les catégories).
+    // Le comportement des cases dépend de compFilterMode ('include' = ne garder que ceux
+    // cochés / 'exclude' = retirer ceux cochés, tout le reste reste inclus).
     function buildCompCheckboxTable(bets, slug) {
       const compMap = {};
       bets.forEach(b => {
@@ -1749,6 +1794,10 @@
         return `<p class="text-[11px] text-slate-400 italic">Aucune donnée.</p>`;
       }
 
+      const checkboxTitle = compFilterMode === 'exclude'
+        ? "Cocher pour exclure ce championnat du Bilan"
+        : "Cocher pour ne garder que ce championnat dans le Bilan";
+
       const rows = keys.map(k => {
         const item = compMap[k];
         const isChecked = currentCompFilters.has(k);
@@ -1756,10 +1805,11 @@
         const roi = item.stake > 0 ? ((item.profit / item.stake) * 100).toFixed(1) : '0.0';
         const profClass = item.profit > 0 ? 'text-emerald-600 font-bold' : item.profit < 0 ? 'text-rose-600 font-bold' : 'text-slate-700';
         const safeKey = k.replace(/'/g, "\\'");
+        const rowHighlight = isChecked ? (compFilterMode === 'exclude' ? 'bg-rose-50' : 'bg-blue-50') : '';
         return `
-          <tr class="hover:bg-blue-50 transition ${isChecked ? 'bg-blue-50' : ''}">
-            <td class="p-1.5 text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCompFilterCheckbox('${safeKey}')"></td>
-            <td class="p-1.5 text-left font-semibold text-slate-700 cursor-pointer" onclick="toggleCompFilterCheckbox('${safeKey}')">${k}</td>
+          <tr class="hover:bg-blue-50 transition ${rowHighlight}">
+            <td class="p-1.5 text-center"><input type="checkbox" title="${checkboxTitle}" ${isChecked ? 'checked' : ''} onchange="toggleCompFilterCheckbox('${safeKey}')"></td>
+            <td class="p-1.5 text-left font-semibold text-slate-700 cursor-pointer" onclick="toggleCompFilterCheckbox('${safeKey}')">${k}${isChecked && compFilterMode === 'exclude' ? ' <span class="text-rose-500 font-bold text-[10px]">(exclu)</span>' : ''}</td>
             <td class="p-1.5 text-center"><span class="text-blue-600 font-bold cursor-pointer hover:underline" onclick="viewCompInHistory('${safeKey}')" title="Voir ces paris dans l'historique (en cours + terminés)">${item.total}</span></td>
             <td class="p-1.5 text-center">${winRate} %</td>
             <td class="p-1.5 text-center ${profClass}">${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(2)} €</td>
@@ -1767,11 +1817,15 @@
           </tr>`;
       }).join('');
 
+      const selectAllTitle = compFilterMode === 'exclude'
+        ? "Tout cocher / tout décocher (exclure tous ces championnats)"
+        : "Tout cocher / tout décocher";
+
       return `
         <table class="w-full text-[11px]">
           <thead>
             <tr class="text-slate-400 font-bold border-b border-slate-100">
-              <th class="p-1.5 text-center w-6"><input type="checkbox" id="compSelectAll-${slug}" onchange="toggleCategoryAllCompFilters('${slug}', this.checked)" title="Tout cocher / tout décocher"></th>
+              <th class="p-1.5 text-center w-6"><input type="checkbox" id="compSelectAll-${slug}" onchange="toggleCategoryAllCompFilters('${slug}', this.checked)" title="${selectAllTitle}"></th>
               <th class="p-1.5 text-left">Championnat</th>
               <th class="p-1.5">Joués</th>
               <th class="p-1.5">Réussite</th>
@@ -1796,6 +1850,10 @@
       const oddsBracketOrder = ['1.00 – 1.49', '1.50 – 1.99', '2.00 et +'];
       const chartNumbers = getBetChartNumbers();
       const betsBySlug = {}; // conservé pour instancier les graphiques après insertion du HTML
+
+      const modeHint = compFilterMode === 'exclude'
+        ? "coche pour exclure du Bilan (le reste des championnats reste inclus)"
+        : "coche pour n'inclure que ceux cochés dans le Bilan";
 
       container.innerHTML = FOOTBALL_CATEGORY_ORDER.map(cat => {
         const slug = footballCategorySlugs[cat];
@@ -1875,7 +1933,7 @@
                 </div>
               </div>` : ''}
               <div>
-                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Par Championnat</h4>
+                <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Par Championnat <span class="normal-case font-normal text-slate-400">— ${modeHint}</span></h4>
                 <div class="overflow-x-auto">${buildCompCheckboxTable(bets, slug)}</div>
               </div>
               <div>
@@ -1994,6 +2052,13 @@
       const historyCompVal = document.getElementById('filterComp')?.value || 'ALL';
       if (historyCompVal !== 'ALL') {
         chips.push({ label: historyCompVal, onClear: "clearHistoryCompFilter()" });
+      }
+
+      if (currentCompFilters.size > 0) {
+        const label = compFilterMode === 'exclude'
+          ? `🚫 ${currentCompFilters.size} championnat(s) exclu(s) du Bilan`
+          : `✅ ${currentCompFilters.size} championnat(s) inclus dans le Bilan`;
+        chips.push({ label, onClear: "resetCompFilters()" });
       }
 
       if (currentMarketFilter) {
