@@ -1317,13 +1317,13 @@
 
       if (/1n2|résultat|vainqueur/.test(market)) {
         if (!teams) return [];
-        return [`Victoire ${teams.teamA}`, 'Match nul', `Victoire ${teams.teamB}`];
+        return [teams.teamA, 'Match nul', teams.teamB];
       }
       if (/btts|deux\s+équipes?\s+marquent/.test(market)) {
-        return ['Oui (BTTS)', 'Non (BTTS)'];
+        return ['Les deux équipes marquent', 'Une équipe ne marque pas'];
       }
       if (/over\/?under/.test(market)) {
-        return ['+ de 1.5 buts', '+ de 2.5 buts', '- de 2.5 buts', '+ de 3.5 buts'];
+        return ['Plus de 1.5 buts', 'Plus de 2.5 buts', 'Moins de 2.5 buts', 'Plus de 3.5 buts'];
       }
       if (/mi[\s-]?temps/.test(market)) {
         if (!teams) return ['Nul à la Mi-Temps'];
