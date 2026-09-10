@@ -38,7 +38,7 @@
         </div>
         <div>
           <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">PronoTracker Pro</h1>
-          <p id="headerSubtitle" class="text-xs text-slate-500 font-medium">Suivi de performance : 🤖 Pronos IA</p>
+          <p id="headerSubtitle" class="text-xs text-slate-500 font-medium">Suivi de performance</p>
         </div>
       </div>
       
@@ -72,7 +72,7 @@
     </div>
 
     <!-- CARTES KPI GLOBALES -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="card p-5 flex items-center gap-4 border-l-4 border-l-slate-400">
         <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
           <i class="fa-solid fa-scale-balanced text-lg"></i>
@@ -102,6 +102,29 @@
           <p id="statROI" class="text-xl font-black text-slate-900 mt-0.5">0.0 %</p>
         </div>
       </div>
+
+      <div class="card p-5 flex items-center gap-4 border-l-4 border-l-amber-500">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+          <i class="fa-solid fa-fire text-lg"></i>
+        </div>
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Meilleure Série</span>
+          <p id="statBestStreak" class="text-lg font-bold text-slate-800 mt-0.5">–</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRAPHIQUE GLOBAL D'ÉVOLUTION DU BANKROLL -->
+    <div class="card p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-chart-area text-blue-600"></i> Évolution du Bankroll
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">Profit cumulé sur la sélection filtrée</span>
+      </div>
+      <div class="h-56 w-full">
+        <canvas id="globalBankrollChart"></canvas>
+      </div>
     </div>
 
     <div id="footballCategoryCard" class="hidden space-y-3">
@@ -128,7 +151,7 @@
     <div class="card p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-extrabold flex items-center gap-2 text-slate-800">
-          <i id="perfIcon" class="fa-solid fa-robot"></i> Performance IA
+          <i id="perfIcon" class="fa-solid fa-chart-line"></i> Performance Globale
         </h3>
         <span class="text-xs text-slate-400 font-medium">Paris terminés</span>
       </div>
@@ -136,7 +159,7 @@
       <div id="perfCard" class="border p-5 rounded-2xl space-y-4">
         <div class="flex justify-between items-start">
           <div>
-            <span id="perfBadge" class="text-white text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide">🤖 Pronos IA</span>
+            <span id="perfBadge" class="text-white text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wide">– Fiabilité –</span>
             <div id="perfStreak" class="mt-2 text-xs font-bold"></div>
           </div>
           <div class="flex gap-6">
@@ -194,7 +217,7 @@
     <!-- STATISTIQUES DÉTAILLÉES -->
     <div class="space-y-3">
       <h2 id="detailedStatsTitle" class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-2">
-        <i class="fa-solid fa-robot"></i> Statistiques Détaillées (IA)
+        <i class="fa-solid fa-chart-pie"></i> Statistiques Détaillées
       </h2>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -280,14 +303,19 @@
           </div>
 
           <div>
-            <label id="labelMatch" class="block font-semibold text-slate-600 mb-1">Match / Affiche</label>
-            <input type="text" id="matchInput" placeholder="Ex: PSG vs OM" required class="input-field w-full">
+            <div class="flex items-center justify-between mb-1">
+              <label id="labelMatch" class="block font-semibold text-slate-600">Match / Affiche</label>
+              <button type="button" onclick="startNewMatch()" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1" title="Vider le match et le pronostic pour saisir une nouvelle affiche">
+                <i class="fa-solid fa-rotate"></i> Nouveau match
+              </button>
+            </div>
+            <input type="text" id="matchInput" placeholder="Ex: PSG vs OM" required class="input-field w-full" oninput="updatePronoSuggestions()">
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label id="labelComp" class="block font-semibold text-slate-600 mb-1">Tournoi / Circuit</label>
-              <input type="text" id="compInput" placeholder="Ex: ATP Montréal" required class="input-field w-full">
+              <input type="text" id="compInput" list="compDatalist" placeholder="Ex: ATP Montréal" required class="input-field w-full">
             </div>
             <div>
               <div class="flex items-center justify-between mb-1">
@@ -296,13 +324,14 @@
                   <i class="fa-solid fa-gear"></i> Gérer
                 </button>
               </div>
-              <select id="marketInput" required class="input-field w-full font-medium"></select>
+              <select id="marketInput" required class="input-field w-full font-medium" onchange="updatePronoSuggestions()"></select>
             </div>
           </div>
 
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Pronostic</label>
             <input type="text" id="pronoInput" placeholder="Ex: Victoire Baez" required class="input-field w-full">
+            <div id="pronoSuggestions" class="hidden flex-wrap gap-1.5 pt-1.5"></div>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
@@ -320,6 +349,9 @@
             <i class="fa-solid fa-floppy-disk"></i> Enregistrer le Pari
           </button>
         </form>
+
+        <!-- Suggestions de championnats déjà utilisés, pour éviter les doublons dus à des fautes de frappe -->
+        <datalist id="compDatalist"></datalist>
       </div>
 
       <!-- HISTORIQUE ET FILTRES -->
@@ -345,6 +377,12 @@
               <button onclick="setQuickFilter('Settled')" id="btnFilterSettled" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
                 ✅ Terminés (<span id="countSettled">0</span>)
               </button>
+              <button onclick="setQuickFilter('Won')" id="btnFilterWon" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                🟢 Gagnés (<span id="countWon">0</span>)
+              </button>
+              <button onclick="setQuickFilter('Lost')" id="btnFilterLost" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                🔴 Perdus (<span id="countLost">0</span>)
+              </button>
             </div>
           </div>
 
@@ -352,10 +390,10 @@
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-              <input type="text" id="searchInput" oninput="render()" placeholder="Rechercher... (ou #12)" class="input-field text-xs pl-8 py-1.5 w-full">
+              <input type="text" id="searchInput" oninput="renderAfterFilterChange()" placeholder="Rechercher... (ou #12)" class="input-field text-xs pl-8 py-1.5 w-full">
             </div>
             
-            <select id="filterComp" onchange="render()" class="input-field text-xs py-1.5 shrink-0 max-w-[180px]">
+            <select id="filterComp" onchange="renderAfterFilterChange()" class="input-field text-xs py-1.5 shrink-0 max-w-[180px]">
               <option value="ALL">Tous les championnats</option>
             </select>
 
@@ -370,9 +408,9 @@
           </div>
 
           <div id="customDateRange" class="hidden flex items-center gap-2 w-full sm:w-auto">
-            <input type="date" id="filterDateFrom" onchange="render()" class="input-field text-xs py-1.5">
+            <input type="date" id="filterDateFrom" onchange="renderAfterFilterChange()" class="input-field text-xs py-1.5">
             <span class="text-xs text-slate-400 font-medium">→</span>
-            <input type="date" id="filterDateTo" onchange="render()" class="input-field text-xs py-1.5">
+            <input type="date" id="filterDateTo" onchange="renderAfterFilterChange()" class="input-field text-xs py-1.5">
           </div>
         </div>
 
@@ -430,7 +468,7 @@
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Tournoi / Compétition</label>
-            <input type="text" id="editComp" required class="input-field w-full">
+            <input type="text" id="editComp" list="compDatalist" required class="input-field w-full">
           </div>
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Marché (Type)</label>
@@ -554,6 +592,7 @@
     let state = JSON.parse(localStorage.getItem('prono_tracker_multisport_data')) || { football: [], tennis: [] };
     
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
+    let globalBankrollChartInstance = null; // instance Chart.js du graphique global (toujours visible)
     let currentQuickFilter = 'ALL';
     // multi-sélection : vide = tous les championnats. Persistée pour survivre à un rechargement de page.
     let currentCompFilters = new Set(JSON.parse(localStorage.getItem('pronotracker_compFilters') || '[]'));
@@ -569,6 +608,26 @@
     let undoTimeout = null;
     let importPreviewData = [];
     let editingBetId = null;
+    const HISTORY_PAGE_SIZE = 25;
+    let historyVisibleCount = HISTORY_PAGE_SIZE; // nombre de lignes affichées dans l'Historique
+
+    // Réinitialise la pagination de l'Historique : à appeler à chaque fois qu'un filtre change,
+    // pour ne pas rester bloqué sur une page qui n'a plus de sens avec la nouvelle sélection.
+    function resetHistoryPagination() {
+      historyVisibleCount = HISTORY_PAGE_SIZE;
+    }
+
+    function loadMoreHistory() {
+      historyVisibleCount += HISTORY_PAGE_SIZE;
+      render();
+    }
+
+    // Utilisé par les champs de filtre (recherche, championnat, plage de dates) : un changement
+    // de filtre doit toujours ramener l'Historique à sa première page.
+    function renderAfterFilterChange() {
+      resetHistoryPagination();
+      render();
+    }
 
     // Types de marché : liste modifiable par l'utilisateur (ajout/suppression), persistée
     // définitivement dans le navigateur. footballMarkets par défaut au premier lancement.
@@ -725,7 +784,6 @@
       setStyle('perfIcon', { color: theme.iconColor });
       setStyle('perfCard', { backgroundColor: theme.cardBg, borderColor: theme.cardBorder });
       setStyle('perfDivider', { borderColor: theme.dividerBorder });
-      setStyle('perfBadge', { backgroundColor: theme.badgeBg });
       setStyle('detailedStatsTitle', { color: theme.main });
       setStyle('quickAddBox', { backgroundImage: `linear-gradient(to bottom right, ${theme.boxFrom}, ${theme.boxTo})`, borderColor: theme.boxBorder });
       setStyle('quickAddLabel', { color: theme.boxText });
@@ -1241,6 +1299,81 @@
       alert(`✅ ${addedCount} pari(s) IA ajouté(s) !`);
     }
 
+    // Sépare "Équipe A vs Équipe B" (ou "Équipe A - Équipe B") en deux noms d'équipe.
+    // Retourne null si le format ne permet pas d'identifier deux équipes distinctes.
+    function splitMatchTeams(matchStr) {
+      if (!matchStr) return null;
+      const parts = matchStr.split(/\s+vs\.?\s+|\s+-\s+/i).map(p => p.trim()).filter(Boolean);
+      if (parts.length !== 2) return null;
+      return { teamA: parts[0], teamB: parts[1] };
+    }
+
+    // Construit la liste de suggestions de pronostic pour un marché donné, à partir
+    // des deux équipes si elles sont identifiables. Couvre les marchés par défaut et
+    // reconnaît aussi les types de marché personnalisés dont le nom ressemble à un type connu.
+    function buildPronoSuggestions(matchStr, marketStr) {
+      const teams = splitMatchTeams(matchStr);
+      const market = (marketStr || '').toLowerCase();
+
+      if (/1n2|résultat|vainqueur/.test(market)) {
+        if (!teams) return [];
+        return [`Victoire ${teams.teamA}`, 'Match nul', `Victoire ${teams.teamB}`];
+      }
+      if (/btts|deux\s+équipes?\s+marquent/.test(market)) {
+        return ['Oui (BTTS)', 'Non (BTTS)'];
+      }
+      if (/over\/?under/.test(market)) {
+        return ['+ de 1.5 buts', '+ de 2.5 buts', '- de 2.5 buts', '+ de 3.5 buts'];
+      }
+      if (/mi[\s-]?temps/.test(market)) {
+        if (!teams) return ['Nul à la Mi-Temps'];
+        return [`Victoire ${teams.teamA} (MT)`, 'Nul (MT)', `Victoire ${teams.teamB} (MT)`];
+      }
+      if (/handicap/.test(market)) {
+        if (!teams) return [];
+        return [`${teams.teamA} Handicap -1`, `${teams.teamB} Handicap -1`];
+      }
+      return [];
+    }
+
+    // Met à jour les chips cliquables sous le champ Pronostic. Appelée à chaque saisie
+    // du Match ou changement de Marché, pour éviter de retaper le pronostic à la main.
+    function updatePronoSuggestions() {
+      const container = document.getElementById('pronoSuggestions');
+      if (!container) return;
+
+      const matchVal = document.getElementById('matchInput')?.value || '';
+      const marketVal = document.getElementById('marketInput')?.value || '';
+      const suggestions = buildPronoSuggestions(matchVal, marketVal);
+
+      if (suggestions.length === 0) {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+        container.innerHTML = '';
+        return;
+      }
+
+      container.classList.remove('hidden');
+      container.classList.add('flex');
+      container.innerHTML = suggestions.map(s => `
+        <button type="button" onclick="document.getElementById('pronoInput').value='${s.replace(/'/g, "\\'")}'; document.getElementById('pronoInput').focus();"
+          class="text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg px-2.5 py-1 transition">
+          ${escAttr(s)}
+        </button>
+      `).join('');
+    }
+
+    // Vide Match + Pronostic (et les suggestions) pour repartir sur une nouvelle affiche
+    // sans devoir effacer manuellement chaque champ. Conserve Championnat/Marché/Mise.
+    function startNewMatch() {
+      const matchInput = document.getElementById('matchInput');
+      const pronoInput = document.getElementById('pronoInput');
+      if (matchInput) matchInput.value = '';
+      if (pronoInput) pronoInput.value = '';
+      updatePronoSuggestions();
+      if (matchInput) matchInput.focus();
+    }
+
     function addBet(e) {
       e.preventDefault();
 
@@ -1266,16 +1399,52 @@
       
       const currentMatch = document.getElementById('matchInput').value;
       const currentComp = document.getElementById('compInput').value;
+      const currentMarket = document.getElementById('marketInput').value;
+      const currentStake = document.getElementById('stakeInput').value;
 
       document.getElementById('addBetForm').reset();
       document.getElementById('typeInput').value = 'Single';
-      document.getElementById('stakeInput').value = 1;
+      document.getElementById('stakeInput').value = currentStake || 1;
       document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
       
       document.getElementById('matchInput').value = currentMatch;
       document.getElementById('compInput').value = currentComp;
+      document.getElementById('marketInput').value = currentMarket;
 
       saveState();
+      updatePronoSuggestions();
+
+      // Le Match/Championnat/Marché/Mise restent pré-remplis pour enchaîner plusieurs
+      // paris rapidement : on ramène directement le focus sur le Pronostic, le seul
+      // champ qui change presque toujours d'un pari à l'autre.
+      const pronoInput = document.getElementById('pronoInput');
+      if (pronoInput) {
+        pronoInput.focus();
+        pronoInput.select();
+      }
+    }
+
+    // Préremplit le formulaire d'ajout à partir d'un pari existant (championnat, marché,
+    // type, mise) : il ne reste plus qu'à changer le Match et la Cote pour un pari similaire.
+    function duplicateBet(id) {
+      const bet = state[currentSport].find(b => b.id === id);
+      if (!bet) return;
+
+      document.getElementById('compInput').value = bet.comp || '';
+      document.getElementById('marketInput').value = bet.market || footballMarkets[0] || '';
+      document.getElementById('typeInput').value = bet.type || 'Single';
+      document.getElementById('stakeInput').value = bet.stake || 1;
+      document.getElementById('matchInput').value = '';
+      document.getElementById('pronoInput').value = '';
+      document.getElementById('oddsInput').value = '';
+      document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+
+      updatePronoSuggestions();
+
+      const formCard = document.getElementById('addBetForm');
+      if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const matchInput = document.getElementById('matchInput');
+      if (matchInput) matchInput.focus();
     }
 
     function openEditModal(id) {
@@ -1369,17 +1538,22 @@
 
     function setQuickFilter(filter) {
       currentQuickFilter = filter;
-      const btnAll = document.getElementById('btnFilterAll');
-      const btnPending = document.getElementById('btnFilterPending');
-      const btnSettled = document.getElementById('btnFilterSettled');
+      const buttons = {
+        ALL: document.getElementById('btnFilterAll'),
+        Pending: document.getElementById('btnFilterPending'),
+        Settled: document.getElementById('btnFilterSettled'),
+        Won: document.getElementById('btnFilterWon'),
+        Lost: document.getElementById('btnFilterLost')
+      };
 
-      const activeClass = "bg-white text-slate-800 shadow-sm font-bold";
-      const inactiveClass = "text-slate-600 hover:text-slate-900 font-medium";
+      const activeClass = "px-3 py-1 rounded-lg transition bg-white text-slate-800 shadow-sm font-bold whitespace-nowrap";
+      const inactiveClass = "px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap";
 
-      btnAll.className = `px-3 py-1 rounded-lg transition ${filter === 'ALL' ? activeClass : inactiveClass}`;
-      btnPending.className = `px-3 py-1 rounded-lg transition ${filter === 'Pending' ? activeClass : inactiveClass}`;
-      btnSettled.className = `px-3 py-1 rounded-lg transition ${filter === 'Settled' ? activeClass : inactiveClass}`;
+      Object.entries(buttons).forEach(([key, btn]) => {
+        if (btn) btn.className = (filter === key) ? activeClass : inactiveClass;
+      });
 
+      resetHistoryPagination();
       render();
     }
 
@@ -1438,6 +1612,7 @@
     function onFilterPeriodChange() {
       const period = document.getElementById('filterPeriod').value;
       document.getElementById('customDateRange').classList.toggle('hidden', period !== 'CUSTOM');
+      resetHistoryPagination();
       render();
     }
 
@@ -1466,17 +1641,23 @@
 
     function populateCompFilterOptions() {
       const select = document.getElementById('filterComp');
-      if (!select) return;
-
       const currentList = state[currentSport] || [];
       const comps = Array.from(new Set(currentList.map(b => (b.comp || '').trim()).filter(c => c)));
       comps.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
 
-      const previousValue = select.value;
-      select.innerHTML = '<option value="ALL">Tous les championnats</option>' +
-        comps.map(c => `<option value="${escAttr(c)}">${escAttr(c)}</option>`).join('');
+      if (select) {
+        const previousValue = select.value;
+        select.innerHTML = '<option value="ALL">Tous les championnats</option>' +
+          comps.map(c => `<option value="${escAttr(c)}">${escAttr(c)}</option>`).join('');
+        select.value = comps.includes(previousValue) ? previousValue : 'ALL';
+      }
 
-      select.value = comps.includes(previousValue) ? previousValue : 'ALL';
+      // Alimente aussi le datalist utilisé par les champs de saisie (formulaire + édition)
+      // pour suggérer les championnats déjà utilisés et limiter les fautes de frappe.
+      const datalist = document.getElementById('compDatalist');
+      if (datalist) {
+        datalist.innerHTML = comps.map(c => `<option value="${escAttr(c)}"></option>`).join('');
+      }
     }
 
     // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
@@ -1512,6 +1693,8 @@
         if (applyQuickStatusFilter) {
           if (currentQuickFilter === 'Pending') matchQuick = (b.status === 'Pending');
           if (currentQuickFilter === 'Settled') matchQuick = (b.status !== 'Pending');
+          if (currentQuickFilter === 'Won') matchQuick = (b.status === 'Won');
+          if (currentQuickFilter === 'Lost') matchQuick = (b.status === 'Lost');
         }
 
         let matchPeriod = true;
@@ -1732,6 +1915,31 @@
       const roiEl = document.getElementById('perfROI');
       roiEl.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
       roiEl.className = 'text-[10px] font-bold block ' + (roi > 0 ? 'text-emerald-600' : roi < 0 ? 'text-rose-600' : 'text-slate-500');
+
+      // Badge de fiabilité : reflète la qualité réelle des pronostics (ROI + volume),
+      // plutôt qu'un simple libellé "IA" fixe qui n'apportait plus d'information.
+      const badgeEl = document.getElementById('perfBadge');
+      if (badgeEl) {
+        let badgeText, badgeColor;
+        if (stats.total < 5) {
+          badgeText = '📊 Échantillon trop faible';
+          badgeColor = '#64748b';
+        } else if (roi >= 10) {
+          badgeText = '🔥 Fiabilité Excellente';
+          badgeColor = '#059669';
+        } else if (roi >= 0) {
+          badgeText = '👍 Fiabilité Solide';
+          badgeColor = '#2563eb';
+        } else if (roi >= -15) {
+          badgeText = '⚠️ Fiabilité à Surveiller';
+          badgeColor = '#d97706';
+        } else {
+          badgeText = '🚨 Fiabilité Faible';
+          badgeColor = '#e11d48';
+        }
+        badgeEl.textContent = badgeText;
+        badgeEl.style.backgroundColor = badgeColor;
+      }
     }
 
     function renderGroupedStats() {
@@ -1815,6 +2023,7 @@
       if (currentCompFilters.has(key)) currentCompFilters.delete(key);
       else currentCompFilters.add(key);
       saveCompFiltersToStorage();
+      resetHistoryPagination();
       render();
       renderGroupedStats();
     }
@@ -2177,8 +2386,97 @@
       });
     }
 
+    // Trace l'évolution cumulée du profit sur TOUTE la sélection filtrée (mêmes filtres
+    // que le Bilan du haut), sans avoir besoin d'ouvrir un accordéon de catégorie.
+    function renderGlobalBankrollChart() {
+      const canvas = document.getElementById('globalBankrollChart');
+      if (!canvas) return;
+
+      const chartNumbers = getBetChartNumbers();
+      const bets = getStatsFilteredBets().filter(b => b.status !== 'Pending');
+      const sortedBets = [...bets].reverse(); // remis en ordre chronologique
+
+      let cum = 0;
+      const labels = ["Début"];
+      const data = [0];
+
+      sortedBets.forEach(b => {
+        let change = 0;
+        if (b.status === 'Won') change = ((b.odds || 1) - 1) * (b.stake || 0);
+        else if (b.status === 'Lost') change = -(b.stake || 0);
+        cum += change;
+        labels.push(`#${chartNumbers[b.id]}`);
+        data.push(parseFloat(cum.toFixed(2)));
+      });
+
+      if (globalBankrollChartInstance) {
+        globalBankrollChartInstance.destroy();
+        globalBankrollChartInstance = null;
+      }
+
+      if (sortedBets.length === 0) {
+        const ctxEmpty = canvas.getContext('2d');
+        ctxEmpty.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      const finalProfit = cum;
+      const color = finalProfit >= 0 ? '#059669' : '#e11d48';
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+      gradient.addColorStop(0, hexToRgba(color, 0.18));
+      gradient.addColorStop(1, hexToRgba(color, 0));
+
+      globalBankrollChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            borderColor: color,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: color
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements.length > 0) {
+              const idx = elements[0].index;
+              if (idx > 0) {
+                const betNum = parseInt(labels[idx].replace('#', ''), 10);
+                if (!isNaN(betNum)) filterByBetNumber(betNum);
+              }
+            }
+          },
+          onHover: (evt, elements) => {
+            evt.native.target.style.cursor = elements.length > 0 && elements[0].index > 0 ? 'pointer' : 'default';
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Bilan cumulé : ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)} €`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' }, maxTicksLimit: 12 } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } } }
+          }
+        }
+      });
+    }
+
     function toggleMarketFilter(key) {
       currentMarketFilter = (currentMarketFilter === key) ? null : key;
+      resetHistoryPagination();
       render();
       renderGroupedStats();
       const list = document.getElementById('betsTbody');
@@ -2187,6 +2485,7 @@
 
     function toggleOddsFilter(key) {
       currentOddsFilter = (currentOddsFilter === key) ? null : key;
+      resetHistoryPagination();
       render();
       renderGroupedStats();
       const list = document.getElementById('betsTbody');
@@ -2237,6 +2536,7 @@
     function clearHistoryCompFilter() {
       const select = document.getElementById('filterComp');
       if (select) select.value = 'ALL';
+      resetHistoryPagination();
       render();
     }
 
@@ -2290,13 +2590,20 @@
 
       // Compteurs des onglets (Tous / En cours / Terminés) : toujours sur l'ensemble
       // des paris du sport, indépendamment des filtres actifs.
-      let totalBets = currentList.length, tabPendingCount = 0, tabSettledCount = 0;
+      let totalBets = currentList.length, tabPendingCount = 0, tabSettledCount = 0, tabWonCount = 0, tabLostCount = 0;
       currentList.forEach(b => {
-        if (b.status === 'Pending') tabPendingCount++; else tabSettledCount++;
+        if (b.status === 'Pending') tabPendingCount++;
+        else {
+          tabSettledCount++;
+          if (b.status === 'Won') tabWonCount++;
+          if (b.status === 'Lost') tabLostCount++;
+        }
       });
       document.getElementById('countAll').textContent = totalBets;
       document.getElementById('countPending').textContent = tabPendingCount;
       document.getElementById('countSettled').textContent = tabSettledCount;
+      document.getElementById('countWon').textContent = tabWonCount;
+      document.getElementById('countLost').textContent = tabLostCount;
 
       // Bilan (cartes KPI en haut) : calculé uniquement sur les paris qui passent
       // les filtres actifs (championnat / marché / cote / circuit / recherche / période / statut).
@@ -2318,8 +2625,9 @@
       }
 
       const chartNumbers = getBetChartNumbers();
+      const visibleBets = filteredBets.slice(0, historyVisibleCount);
 
-      filteredBets.forEach((b) => {
+      visibleBets.forEach((b) => {
         let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold inline-block">⏳ En cours</span>`;
         if (b.status === 'Won') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold inline-block">✅ Gagné</span>`;
         if (b.status === 'Lost') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-extrabold inline-block">❌ Perdu</span>`;
@@ -2393,6 +2701,7 @@
                 <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
                 <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-7 h-7 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
                 <button onclick="startInlineEdit(${b.id})" title="Modifier" class="w-7 h-7 flex items-center justify-center bg-white text-slate-600 hover:text-blue-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="duplicateBet(${b.id})" title="Dupliquer (même championnat/marché)" class="w-7 h-7 flex items-center justify-center bg-white text-slate-600 hover:text-amber-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-copy"></i></button>
                 <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-rose-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
               </div>
             </td>
@@ -2465,6 +2774,7 @@
                 <button onclick="setStatus(${b.id}, 'Won')" title="Gagné" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Won' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-slate-200'}"><i class="fa-solid fa-check"></i></button>
                 <button onclick="setStatus(${b.id}, 'Lost')" title="Perdu" class="w-8 h-8 flex items-center justify-center rounded-lg border transition shadow-sm text-xs ${b.status === 'Lost' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-slate-200'}"><i class="fa-solid fa-xmark"></i></button>
                 <button onclick="startInlineEdit(${b.id})" title="Modifier" class="w-8 h-8 flex items-center justify-center bg-white text-slate-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="duplicateBet(${b.id})" title="Dupliquer" class="w-8 h-8 flex items-center justify-center bg-white text-slate-600 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-copy"></i></button>
                 <button onclick="deleteBet(${b.id})" title="Supprimer" class="w-8 h-8 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 transition shadow-sm text-xs"><i class="fa-solid fa-trash-can"></i></button>
               </div>
             </div>
@@ -2476,7 +2786,24 @@
       if (filteredBets.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
         cardsMobile.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Aucun pari dans cette vue.</div>`;
+      } else if (filteredBets.length > visibleBets.length) {
+        const remaining = filteredBets.length - visibleBets.length;
+        const loadMoreRow = document.createElement('tr');
+        loadMoreRow.innerHTML = `
+          <td colspan="8" class="p-3 text-center">
+            <button onclick="loadMoreHistory()" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-4 py-2 transition">
+              <i class="fa-solid fa-chevron-down mr-1"></i> Charger plus (${remaining} restant${remaining > 1 ? 's' : ''})
+            </button>
+          </td>`;
+        tbody.appendChild(loadMoreRow);
+
+        const loadMoreCard = document.createElement('button');
+        loadMoreCard.onclick = loadMoreHistory;
+        loadMoreCard.className = 'w-full text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl px-4 py-2.5 transition';
+        loadMoreCard.innerHTML = `<i class="fa-solid fa-chevron-down mr-1"></i> Charger plus (${remaining} restant${remaining > 1 ? 's' : ''})`;
+        cardsMobile.appendChild(loadMoreCard);
       }
+
 
       const roi = totalStake > 0 ? (profit / totalStake) * 100 : 0;
       const avgOdds = settledBets > 0 ? (oddsSum / settledBets) : 0;
@@ -2492,10 +2819,21 @@
       roiEl.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
       roiEl.className = 'text-xl font-black ' + (roi > 0 ? 'text-emerald-600' : roi < 0 ? 'text-rose-600' : 'text-slate-800');
 
+      // Meilleure série historique (victoires consécutives) sur la sélection filtrée du Bilan.
+      const settledChrono = [...kpiBets].filter(b => b.status === 'Won' || b.status === 'Lost').reverse();
+      let bestWinStreak = 0, runningStreak = 0;
+      settledChrono.forEach(b => {
+        if (b.status === 'Won') { runningStreak++; bestWinStreak = Math.max(bestWinStreak, runningStreak); }
+        else runningStreak = 0;
+      });
+      const bestStreakEl = document.getElementById('statBestStreak');
+      if (bestStreakEl) bestStreakEl.textContent = settledChrono.length > 0 ? `🔥 ${bestWinStreak} victoires` : '–';
+
       renderPerformanceStats();
       renderDailyStats();
       renderGroupedStats();
       renderFootballCategoryStats();
+      renderGlobalBankrollChart();
     }
 
     function hexToRgba(hex, alpha) {
