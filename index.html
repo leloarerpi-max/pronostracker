@@ -2679,43 +2679,14 @@
 
     function renderActiveFiltersBanner() {
       const banner = document.getElementById('activeFiltersBanner');
-      const chips = [];
-
-      const historyCompVal = document.getElementById('filterComp')?.value || 'ALL';
-      if (historyCompVal !== 'ALL') {
-        chips.push({ label: historyCompVal, onClear: "clearHistoryCompFilter()" });
-      }
-
-      if (currentCompFilters.size > 0) {
-        const label = compFilterMode === 'exclude'
-          ? `🚫 ${currentCompFilters.size} championnat(s) exclu(s) du Bilan`
-          : `✅ ${currentCompFilters.size} championnat(s) inclus dans le Bilan`;
-        chips.push({ label, onClear: "resetCompFilters()" });
-      }
-
-      if (currentMarketFilter) {
-        chips.push({ label: currentMarketFilter, onClear: "toggleMarketFilter(currentMarketFilter)" });
-      }
-      if (currentOddsFilter) {
-        chips.push({ label: currentOddsFilter, onClear: "toggleOddsFilter(currentOddsFilter)" });
-      }
-
-      if (chips.length === 0) {
+      // Bannière masquée à la demande : les filtres restent actifs, seul l'affichage
+      // des petites puces récapitulatives (championnats exclus/marché/cote...) est retiré.
+      if (banner) {
         banner.classList.add('hidden');
         banner.classList.remove('flex');
         banner.innerHTML = '';
-        return;
       }
-
-      banner.classList.remove('hidden');
-      banner.classList.add('flex');
-      banner.innerHTML = chips.map(c => `
-        <span class="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg px-3 py-1.5">
-          <i class="fa-solid fa-filter"></i>
-          <span>${escAttr(c.label)}</span>
-          <button onclick="${c.onClear}" class="ml-auto text-blue-500 hover:text-blue-800"><i class="fa-solid fa-xmark"></i></button>
-        </span>
-      `).join('');
+      return;
     }
 
     function clearHistoryCompFilter() {
@@ -2813,13 +2784,10 @@
         else if (b.status === 'Lost') { lostBets++; settledBets++; profit -= (b.stake || 0); totalStake += (b.stake || 0); oddsSum += (b.odds || 1); }
       });
 
+      // Bannière "Bilan calculé sur la sélection filtrée..." masquée à la demande :
+      // les filtres continuent d'agir normalement sur le Bilan, seul le rappel visuel est retiré.
       const statsBanner = document.getElementById('statsFilterBanner');
-      const statsBannerText = document.getElementById('statsFilterBannerText');
-      if (hasActiveStatsFilters()) {
-        statsBannerText.innerHTML = `<i class="fa-solid fa-filter"></i> Bilan calculé sur la sélection filtrée — <strong>${settledBets}</strong> pari(s) terminé(s) pris en compte sur ${tabSettledCount}.`;
-        statsBanner.classList.remove('hidden');
-        statsBanner.classList.add('flex');
-      } else {
+      if (statsBanner) {
         statsBanner.classList.add('hidden');
         statsBanner.classList.remove('flex');
       }
