@@ -72,7 +72,7 @@
     </div>
 
     <!-- CARTES KPI GLOBALES -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       <div class="card p-5 flex items-center gap-4 border-l-4 border-l-slate-400">
         <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
           <i class="fa-solid fa-scale-balanced text-lg"></i>
@@ -88,8 +88,18 @@
           <i class="fa-solid fa-wallet text-lg"></i>
         </div>
         <div>
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Bilan Net Total</span>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Bilan Net Solo</span>
           <p id="statProfit" class="text-xl font-black text-slate-900 mt-0.5">0.00 €</p>
+        </div>
+      </div>
+
+      <div class="card p-5 flex items-center gap-4 border-l-4 border-l-violet-500">
+        <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600">
+          <i class="fa-solid fa-layer-group text-lg"></i>
+        </div>
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Bilan Net Combiné</span>
+          <p id="statProfitCombo" class="text-xl font-black text-slate-900 mt-0.5">0.00 €</p>
         </div>
       </div>
 
@@ -297,7 +307,6 @@
               <label class="block font-semibold text-slate-600 mb-1">Type</label>
               <select id="typeInput" required class="input-field w-full font-bold">
                 <option value="Single">📌 Simple</option>
-                <option value="Combo">🔀 Combiné</option>
               </select>
             </div>
           </div>
@@ -414,11 +423,21 @@
           </div>
         </div>
 
+        <!-- BARRE DE SÉLECTION POUR CRÉER UN COMBINÉ -->
+        <div id="comboSelectionBar" class="hidden items-center justify-between gap-3 bg-violet-50 border border-violet-200 text-violet-800 text-xs font-semibold px-4 py-3 rounded-xl">
+          <span id="comboSelectionText" class="flex items-center gap-2"><i class="fa-solid fa-layer-group"></i></span>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openComboModal()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-3 py-1.5 rounded-lg transition">🔀 Combiner la sélection</button>
+            <button onclick="clearBetSelection()" class="text-violet-700 hover:text-violet-900 px-2 py-1.5 font-medium">Annuler</button>
+          </div>
+        </div>
+
         <!-- VUE TABLEAU (écrans moyens et larges) -->
         <div class="hidden md:block overflow-x-auto border border-slate-200 rounded-xl">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200 font-bold tracking-wider">
               <tr>
+                <th class="p-3 text-center whitespace-nowrap w-8"><i class="fa-solid fa-check-double text-slate-300" title="Sélection pour combiner"></i></th>
                 <th onclick="toggleSort('betNum')" class="p-3 text-center sortable whitespace-nowrap">N° <span id="sort-betNum"></span></th>
                 <th onclick="toggleSort('date')" class="p-3 sortable whitespace-nowrap">Date <span id="sort-date">▼</span></th>
                 <th onclick="toggleSort('match')" class="p-3 sortable">Match <span id="sort-match"></span></th>
@@ -439,6 +458,43 @@
 
     </div>
 
+    <!-- MES COMBINÉS -->
+    <div class="card p-5 space-y-3">
+      <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+        <i class="fa-solid fa-layer-group text-violet-600"></i> Mes Combinés
+      </h3>
+      <div id="combosListContainer" class="space-y-3"></div>
+    </div>
+
+  </div>
+
+  <!-- MODAL COMBINER -->
+  <div id="comboModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-violet-600"></i> Créer un combiné
+        </h3>
+        <button onclick="closeComboModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="comboModalLegsList" class="space-y-1.5 text-xs max-h-60 overflow-y-auto"></div>
+
+      <div class="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-xl px-3 py-2.5">
+        <span class="text-xs font-bold text-violet-800">Cote totale du combiné</span>
+        <span id="comboModalTotalOdds" class="text-lg font-black text-violet-700">1.00</span>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-600 mb-1 text-xs">Mise du combiné (€)</label>
+        <input type="number" step="0.01" min="0.01" id="comboStakeInput" class="input-field w-full text-xs font-black">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeComboModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition">Annuler</button>
+        <button onclick="confirmCreateCombo()" class="px-4 py-2 rounded-lg bg-violet-600 text-white font-bold text-xs hover:bg-violet-700 transition">Créer le combiné</button>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL EDIT -->
@@ -590,6 +646,11 @@
   <script>
     let currentSport = 'football';
     let state = JSON.parse(localStorage.getItem('prono_tracker_multisport_data')) || { football: [], tennis: [] };
+    if (!state.combos) state.combos = {};
+    if (!Array.isArray(state.combos.football)) state.combos.football = [];
+    if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
+    // Sélection en cours (cases cochées dans l'Historique) en vue de créer un combiné.
+    let selectedBetIds = new Set();
     
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let globalBankrollChartInstance = null; // instance Chart.js du graphique global (toujours visible)
@@ -805,6 +866,7 @@
       currentMarketFilter = null;
       currentOddsFilter = null;
       editingBetId = null;
+      selectedBetIds.clear();
       applyTheme();
       updateCompFilterModeButtons();
 
@@ -837,7 +899,11 @@
           if (importedData && typeof importedData === 'object' && (importedData.football || importedData.tennis)) {
             state = {
               football: Array.isArray(importedData.football) ? importedData.football : [],
-              tennis: Array.isArray(importedData.tennis) ? importedData.tennis : []
+              tennis: Array.isArray(importedData.tennis) ? importedData.tennis : [],
+              combos: {
+                football: (importedData.combos && Array.isArray(importedData.combos.football)) ? importedData.combos.football : [],
+                tennis: (importedData.combos && Array.isArray(importedData.combos.tennis)) ? importedData.combos.tennis : []
+              }
             };
           } else if (importedData && Array.isArray(importedData.bets)) {
             state[currentSport] = importedData.bets;
@@ -846,6 +912,10 @@
           } else {
             alert("⚠️ Format non reconnu."); return;
           }
+
+          if (!state.combos) state.combos = {};
+          if (!Array.isArray(state.combos.football)) state.combos.football = [];
+          if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
 
           ['football', 'tennis'].forEach(sp => {
             if (!state[sp]) state[sp] = [];
@@ -1568,7 +1638,21 @@
     function deleteBet(id) {
       const betIndex = state[currentSport].findIndex(b => b.id === id);
       if (betIndex !== -1) {
-        lastDeletedBet = { bet: state[currentSport][betIndex], index: betIndex, sport: currentSport };
+        const bet = state[currentSport][betIndex];
+        // Si ce pari fait partie d'un combiné, on le retire du combiné ; si le combiné
+        // n'a plus assez de sélections pour tenir debout, il est dissous.
+        if (bet.comboId) {
+          const combos = state.combos[currentSport] || [];
+          const combo = combos.find(c => c.id === bet.comboId);
+          if (combo) {
+            combo.legIds = combo.legIds.filter(legId => legId !== id);
+            if (combo.legIds.length < 2) {
+              state.combos[currentSport] = combos.filter(c => c.id !== combo.id);
+            }
+          }
+        }
+        delete bet.comboId;
+        lastDeletedBet = { bet: bet, index: betIndex, sport: currentSport };
         state[currentSport].splice(betIndex, 1);
         saveState();
 
@@ -1595,6 +1679,8 @@
     function clearAll() {
       if (confirm(`Voulez-vous vraiment effacer tous les paris ${currentSport.toUpperCase()} ?`)) {
         state[currentSport] = [];
+        state.combos[currentSport] = [];
+        selectedBetIds.clear();
         saveState();
       }
     }
@@ -1787,6 +1873,198 @@
 
       return filtered;
     }
+
+    // ===================== COMBINÉS =====================
+
+    // Retrouve les paris (legs) d'un combiné dans la liste actuelle du sport.
+    function comboLegs(sport, combo) {
+      const list = state[sport] || [];
+      return combo.legIds.map(id => list.find(b => b.id === id)).filter(Boolean);
+    }
+
+    function comboOdds(sport, combo) {
+      return comboLegs(sport, combo).reduce((prod, leg) => prod * (leg.odds || 1), 1);
+    }
+
+    // Statut auto : Perdu dès qu'une sélection est perdue, Gagné si toutes le sont, sinon En cours.
+    function comboStatus(sport, combo) {
+      const legs = comboLegs(sport, combo);
+      if (legs.some(l => l.status === 'Lost')) return 'Lost';
+      if (legs.length > 0 && legs.every(l => l.status === 'Won')) return 'Won';
+      return 'Pending';
+    }
+
+    function comboProfit(sport, combo) {
+      const status = comboStatus(sport, combo);
+      const stake = combo.stake || 0;
+      if (status === 'Won') return (comboOdds(sport, combo) - 1) * stake;
+      if (status === 'Lost') return -stake;
+      return 0;
+    }
+
+    function toggleBetSelection(id, checked) {
+      if (checked) selectedBetIds.add(id);
+      else selectedBetIds.delete(id);
+      updateComboSelectionBar();
+    }
+
+    function clearBetSelection() {
+      selectedBetIds.clear();
+      updateComboSelectionBar();
+      render();
+    }
+
+    function updateComboSelectionBar() {
+      const bar = document.getElementById('comboSelectionBar');
+      const text = document.getElementById('comboSelectionText');
+      const count = selectedBetIds.size;
+      if (count >= 2) {
+        text.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${count} paris sélectionnés`;
+        bar.classList.remove('hidden');
+        bar.classList.add('flex');
+      } else {
+        bar.classList.add('hidden');
+        bar.classList.remove('flex');
+      }
+    }
+
+    function openComboModal() {
+      if (selectedBetIds.size < 2) return;
+      const list = state[currentSport] || [];
+      const legs = Array.from(selectedBetIds).map(id => list.find(b => b.id === id)).filter(Boolean);
+      if (legs.length < 2) return;
+
+      const legsList = document.getElementById('comboModalLegsList');
+      legsList.innerHTML = legs.map(l => `
+        <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+          <div class="min-w-0">
+            <div class="font-bold text-slate-800 truncate">${l.match || ''}</div>
+            <div class="text-[10px] text-slate-400 truncate">${l.prono || ''} (${l.market || ''})</div>
+          </div>
+          <span class="font-black text-blue-600 shrink-0">${(l.odds || 1).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      const totalOdds = legs.reduce((prod, l) => prod * (l.odds || 1), 1);
+      document.getElementById('comboModalTotalOdds').textContent = totalOdds.toFixed(2);
+
+      // La mise reprend automatiquement celle du 1er pari sélectionné (modifiable).
+      const firstId = Array.from(selectedBetIds)[0];
+      const firstBet = list.find(b => b.id === firstId);
+      document.getElementById('comboStakeInput').value = (firstBet && firstBet.stake) || 1;
+
+      document.getElementById('comboModal').classList.remove('hidden');
+    }
+
+    function closeComboModal() {
+      document.getElementById('comboModal').classList.add('hidden');
+    }
+
+    function confirmCreateCombo() {
+      if (selectedBetIds.size < 2) { closeComboModal(); return; }
+      const stake = parseFloat(document.getElementById('comboStakeInput').value);
+      if (!stake || stake <= 0) { alert("⚠️ Merci d'indiquer une mise valide pour le combiné."); return; }
+
+      const combo = {
+        id: Date.now(),
+        stake: stake,
+        legIds: Array.from(selectedBetIds),
+        createdAt: new Date().toISOString()
+      };
+
+      const list = state[currentSport] || [];
+      combo.legIds.forEach(id => {
+        const bet = list.find(b => b.id === id);
+        if (bet) bet.comboId = combo.id;
+      });
+
+      state.combos[currentSport].push(combo);
+      selectedBetIds.clear();
+      closeComboModal();
+      saveState();
+    }
+
+    // Dissout le combiné : les paris redeviennent des Simples normaux, comptés dans le Bilan Solo.
+    function decombineCombo(comboId) {
+      const combos = state.combos[currentSport] || [];
+      const combo = combos.find(c => c.id === comboId);
+      if (!combo) return;
+      const list = state[currentSport] || [];
+      combo.legIds.forEach(id => {
+        const bet = list.find(b => b.id === id);
+        if (bet) delete bet.comboId;
+      });
+      state.combos[currentSport] = combos.filter(c => c.id !== comboId);
+      saveState();
+    }
+
+    // Supprime le combiné ET les paris qui le composent.
+    function deleteComboWithLegs(comboId) {
+      if (!confirm("Supprimer ce combiné et les paris qui le composent ?")) return;
+      const combos = state.combos[currentSport] || [];
+      const combo = combos.find(c => c.id === comboId);
+      if (!combo) return;
+      state[currentSport] = (state[currentSport] || []).filter(b => !combo.legIds.includes(b.id));
+      state.combos[currentSport] = combos.filter(c => c.id !== comboId);
+      saveState();
+    }
+
+    function renderCombos() {
+      const container = document.getElementById('combosListContainer');
+      if (!container) return;
+      const combos = state.combos[currentSport] || [];
+
+      if (combos.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic">Aucun combiné pour l'instant. Coche 2 paris ou plus dans l'Historique pour en créer un.</p>`;
+        return;
+      }
+
+      container.innerHTML = combos.slice().reverse().map(combo => {
+        const legs = comboLegs(currentSport, combo);
+        const status = comboStatus(currentSport, combo);
+        const odds = comboOdds(currentSport, combo);
+        const profit = comboProfit(currentSport, combo);
+
+        let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold inline-block">⏳ En cours</span>`;
+        if (status === 'Won') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold inline-block">✅ Gagné</span>`;
+        if (status === 'Lost') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-extrabold inline-block">❌ Perdu</span>`;
+
+        const legsHtml = legs.map(l => {
+          let legDot = '⏳';
+          if (l.status === 'Won') legDot = '✅';
+          if (l.status === 'Lost') legDot = '❌';
+          return `<div class="flex items-center justify-between gap-2 text-[11px] text-slate-600 px-2.5 py-1">
+            <span class="truncate">${legDot} ${l.match || ''} <span class="text-slate-400">— ${l.prono || ''}</span></span>
+            <span class="font-bold text-blue-600 shrink-0">${(l.odds || 1).toFixed(2)}</span>
+          </div>`;
+        }).join('');
+
+        const profitColor = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-rose-600' : 'text-slate-500';
+
+        return `
+          <div class="border border-slate-200 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-violet-700">🔀 Combiné (${legs.length} sélections)</span>
+                ${statusBadge}
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="font-black text-blue-600">${odds.toFixed(2)}</span>
+                <span class="font-bold text-slate-700">${(combo.stake || 0)} €</span>
+                <span class="font-black ${profitColor}">${status === 'Pending' ? '–' : (profit >= 0 ? '+' : '') + profit.toFixed(2) + ' €'}</span>
+              </div>
+            </div>
+            <div class="bg-slate-50 rounded-lg divide-y divide-slate-100">${legsHtml}</div>
+            <div class="flex justify-end gap-2 pt-1">
+              <button onclick="decombineCombo(${combo.id})" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-bold text-[11px] hover:bg-slate-50 transition"><i class="fa-solid fa-link-slash mr-1"></i>Décombiner</button>
+              <button onclick="deleteComboWithLegs(${combo.id})" class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 font-bold text-[11px] hover:bg-rose-50 transition"><i class="fa-solid fa-trash-can mr-1"></i>Supprimer tout</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===================== FIN COMBINÉS =====================
 
     function calculateStreak(bets) {
       const settled = bets.filter(b => b.status === 'Won' || b.status === 'Lost');
@@ -2561,6 +2839,7 @@
 
     function render() {
       updateBackupBanner();
+      updateComboSelectionBar();
 
       renderActiveFiltersBanner();
 
@@ -2573,6 +2852,10 @@
       // marché, cote, circuit, championnats cochés) mais ignore volontairement le filtre
       // Tous/En cours/Terminés : cliquer sur "En cours" ne doit pas vider le Bilan Net Total.
       const kpiBets = getStatsFilteredBets();
+      // Cote/Mise Moy., ROI, Bilan Solo et Meilleure Série (cartes du haut) ne portent que
+      // sur les paris Solo : les paris intégrés à un combiné sont exclus de ce calcul,
+      // leur argent étant déjà compté au niveau du combiné (voir statProfitCombo plus bas).
+      const soloKpiBets = kpiBets.filter(b => !b.comboId);
       const tbody = document.getElementById('betsTbody');
       const cardsMobile = document.getElementById('betsCardsMobile');
       tbody.innerHTML = '';
@@ -2598,7 +2881,7 @@
       // Bilan (cartes KPI en haut) : calculé uniquement sur les paris qui passent
       // les filtres actifs (championnat / marché / cote / circuit / recherche / période / statut).
       let wonBets = 0, lostBets = 0, settledBets = 0, profit = 0, totalStake = 0, oddsSum = 0;
-      kpiBets.forEach(b => {
+      soloKpiBets.forEach(b => {
         if (b.status === 'Won') { wonBets++; settledBets++; profit += ((b.odds || 1) - 1) * (b.stake || 0); totalStake += (b.stake || 0); oddsSum += (b.odds || 1); }
         else if (b.status === 'Lost') { lostBets++; settledBets++; profit -= (b.stake || 0); totalStake += (b.stake || 0); oddsSum += (b.odds || 1); }
       });
@@ -2630,12 +2913,17 @@
         const isEditing = (b.id === editingBetId);
         const marketOpts = marketOptionsHtml(b.market);
 
+        const comboSelectCell = b.comboId
+          ? `<td class="p-3 align-middle text-center" title="Fait partie d'un combiné"><i class="fa-solid fa-link text-violet-500 text-xs"></i></td>`
+          : `<td class="p-3 align-middle text-center"><input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked)" class="w-3.5 h-3.5 accent-violet-600"></td>`;
+        const comboMatchBadge = b.comboId ? `<span class="text-violet-500" title="Fait partie d'un combiné"><i class="fa-solid fa-link"></i></span> ` : '';
+
         const tr = document.createElement('tr');
         tr.className = `hover:bg-slate-50 transition border-b border-slate-100 ${isEditing ? 'bg-blue-50/50' : ''}`;
 
         if (isEditing) {
           tr.innerHTML = `
-            <td colspan="8" class="p-4">
+            <td colspan="9" class="p-4">
               <div class="grid grid-cols-4 gap-3">
                 <div>
                   <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Date</label>
@@ -2674,10 +2962,11 @@
           `;
         } else {
           tr.innerHTML = `
+            ${comboSelectCell}
             <td class="p-3 align-middle text-center text-xs whitespace-nowrap">${numBadge}</td>
             <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}</td>
             <td class="p-3 align-middle font-semibold text-slate-800">
-              <div class="text-xs font-bold text-slate-900">${b.match || ''}</div>
+              <div class="text-xs font-bold text-slate-900">${comboMatchBadge}${b.match || ''}</div>
               <div class="text-[10px] text-slate-400 font-medium">${b.comp || ''}</div>
             </td>
             <td class="p-3 align-middle font-medium text-slate-800">
@@ -2744,11 +3033,17 @@
             </div>
           `;
         } else {
+          const comboCheckboxMobile = b.comboId
+            ? `<i class="fa-solid fa-link text-violet-500 text-xs mt-0.5" title="Fait partie d'un combiné"></i>`
+            : `<input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked)" class="w-3.5 h-3.5 mt-0.5 accent-violet-600 shrink-0">`;
           card.innerHTML = `
             <div class="flex justify-between items-start gap-2">
-              <div class="min-w-0">
-                <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
-                <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+              <div class="flex items-start gap-2 min-w-0">
+                ${comboCheckboxMobile}
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
+                  <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+                </div>
               </div>
               ${statusBadge}
             </div>
@@ -2774,13 +3069,13 @@
       });
 
       if (filteredBets.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">Aucun pari dans cette vue.</td></tr>`;
         cardsMobile.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Aucun pari dans cette vue.</div>`;
       } else if (filteredBets.length > visibleBets.length) {
         const remaining = filteredBets.length - visibleBets.length;
         const loadMoreRow = document.createElement('tr');
         loadMoreRow.innerHTML = `
-          <td colspan="8" class="p-3 text-center">
+          <td colspan="9" class="p-3 text-center">
             <button onclick="loadMoreHistory()" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-4 py-2 transition">
               <i class="fa-solid fa-chevron-down mr-1"></i> Charger plus (${remaining} restant${remaining > 1 ? 's' : ''})
             </button>
@@ -2809,8 +3104,8 @@
       roiEl.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(1) + ' %';
       roiEl.className = 'text-xl font-black ' + (roi > 0 ? 'text-emerald-600' : roi < 0 ? 'text-rose-600' : 'text-slate-800');
 
-      // Meilleure série historique (victoires consécutives) sur la sélection filtrée du Bilan.
-      const settledChrono = [...kpiBets].filter(b => b.status === 'Won' || b.status === 'Lost').reverse();
+      // Meilleure série historique (victoires consécutives) sur les paris Solo uniquement.
+      const settledChrono = [...soloKpiBets].filter(b => b.status === 'Won' || b.status === 'Lost').reverse();
       let bestWinStreak = 0, runningStreak = 0;
       settledChrono.forEach(b => {
         if (b.status === 'Won') { runningStreak++; bestWinStreak = Math.max(bestWinStreak, runningStreak); }
@@ -2819,6 +3114,22 @@
       const bestStreakEl = document.getElementById('statBestStreak');
       if (bestStreakEl) bestStreakEl.textContent = settledChrono.length > 0 ? `🔥 ${bestWinStreak} victoires` : '–';
 
+      // Bilan Net Total Combiné : somme des combinés réglés (Gagné/Perdu) du sport courant.
+      // Volontairement indépendant des filtres du Bilan (championnat/marché/cote/période),
+      // un combiné pouvant mélanger plusieurs marchés/championnats différents.
+      const combosForSport = state.combos[currentSport] || [];
+      let comboBilan = 0;
+      combosForSport.forEach(combo => {
+        const status = comboStatus(currentSport, combo);
+        if (status === 'Won' || status === 'Lost') comboBilan += comboProfit(currentSport, combo);
+      });
+      const profitComboEl = document.getElementById('statProfitCombo');
+      if (profitComboEl) {
+        profitComboEl.textContent = (comboBilan >= 0 ? '+' : '') + comboBilan.toFixed(2) + ' €';
+        profitComboEl.className = 'text-xl font-black ' + (comboBilan > 0 ? 'text-emerald-600' : comboBilan < 0 ? 'text-rose-600' : 'text-slate-800');
+      }
+
+      renderCombos();
       renderPerformanceStats();
       renderDailyStats();
       renderGroupedStats();
