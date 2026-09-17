@@ -2769,10 +2769,10 @@
       // marché, cote, circuit, championnats cochés) mais ignore volontairement le filtre
       // Tous/En cours/Terminés : cliquer sur "En cours" ne doit pas vider le Bilan Net Total.
       const kpiBets = getStatsFilteredBets();
-      // Cote/Mise Moy., ROI, Bilan Solo et Meilleure Série (cartes du haut) ne portent que
-      // sur les paris Solo : les paris intégrés à un combiné sont exclus de ce calcul,
-      // leur argent étant déjà compté au niveau du combiné (voir statProfitCombo plus bas).
-      const soloKpiBets = kpiBets.filter(b => !b.comboId);
+      // Cote/Mise Moy., ROI et Bilan Solo (cartes du haut) portent sur TOUS les paris,
+      // qu'ils soient combinés ou non : chaque pari compte pour sa propre mise/cote en Solo,
+      // et les combinés sont comptés EN PLUS dans le Bilan Combiné (voir statProfitCombo).
+      const soloKpiBets = kpiBets;
       const tbody = document.getElementById('betsTbody');
       const cardsMobile = document.getElementById('betsCardsMobile');
       tbody.innerHTML = '';
