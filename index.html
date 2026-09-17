@@ -1908,9 +1908,26 @@
       return 0;
     }
 
-    function toggleBetSelection(id, checked) {
-      if (checked) selectedBetIds.add(id);
-      else selectedBetIds.delete(id);
+    function toggleBetSelection(id, checked, checkboxEl) {
+      if (checked) {
+        const list = state[currentSport] || [];
+        const bet = list.find(b => b.id === id);
+        if (bet) {
+          const newMatchKey = normalizeMatchName(bet.match);
+          const conflict = Array.from(selectedBetIds).some(selId => {
+            const selBet = list.find(b => b.id === selId);
+            return selBet && newMatchKey && normalizeMatchName(selBet.match) === newMatchKey;
+          });
+          if (conflict) {
+            alert(`⚠️ Impossible de combiner deux sélections du même match ("${bet.match}"). Choisis un pari sur un autre match.`);
+            if (checkboxEl) checkboxEl.checked = false;
+            return;
+          }
+        }
+        selectedBetIds.add(id);
+      } else {
+        selectedBetIds.delete(id);
+      }
       updateComboSelectionBar();
     }
 
@@ -1968,6 +1985,18 @@
 
     function confirmCreateCombo() {
       if (selectedBetIds.size < 2) { closeComboModal(); return; }
+
+      const list = state[currentSport] || [];
+
+      // Filet de sécurité : re-vérifie l'absence de doublon de match avant de créer le combiné.
+      const legs = Array.from(selectedBetIds).map(id => list.find(b => b.id === id)).filter(Boolean);
+      const matchKeys = legs.map(l => normalizeMatchName(l.match));
+      const hasDuplicateMatch = matchKeys.some((key, i) => key && matchKeys.indexOf(key) !== i);
+      if (hasDuplicateMatch) {
+        alert("⚠️ Deux sélections de ce combiné portent sur le même match. Retire l'une d'elles avant de continuer.");
+        return;
+      }
+
       const stake = parseFloat(document.getElementById('comboStakeInput').value);
       if (!stake || stake <= 0) { alert("⚠️ Merci d'indiquer une mise valide pour le combiné."); return; }
 
@@ -1978,7 +2007,6 @@
         createdAt: new Date().toISOString()
       };
 
-      const list = state[currentSport] || [];
       combo.legIds.forEach(id => {
         const bet = list.find(b => b.id === id);
         if (bet) bet.comboId = combo.id;
@@ -2810,7 +2838,7 @@
 
         const comboSelectCell = b.comboId
           ? `<td class="p-3 align-middle text-center" title="Fait partie d'un combiné"><i class="fa-solid fa-link text-violet-500 text-xs"></i></td>`
-          : `<td class="p-3 align-middle text-center"><input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked)" class="w-3.5 h-3.5 accent-violet-600"></td>`;
+          : `<td class="p-3 align-middle text-center"><input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked, this)" class="w-3.5 h-3.5 accent-violet-600"></td>`;
         const comboMatchBadge = b.comboId ? `<span class="text-violet-500" title="Fait partie d'un combiné"><i class="fa-solid fa-link"></i></span> ` : '';
 
         const tr = document.createElement('tr');
@@ -2930,7 +2958,7 @@
         } else {
           const comboCheckboxMobile = b.comboId
             ? `<i class="fa-solid fa-link text-violet-500 text-xs mt-0.5" title="Fait partie d'un combiné"></i>`
-            : `<input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked)" class="w-3.5 h-3.5 mt-0.5 accent-violet-600 shrink-0">`;
+            : `<input type="checkbox" ${selectedBetIds.has(b.id) ? 'checked' : ''} onchange="toggleBetSelection(${b.id}, this.checked, this)" class="w-3.5 h-3.5 mt-0.5 accent-violet-600 shrink-0">`;
           card.innerHTML = `
             <div class="flex justify-between items-start gap-2">
               <div class="flex items-start gap-2 min-w-0">
