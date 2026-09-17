@@ -72,7 +72,7 @@
     </div>
 
     <!-- CARTES KPI GLOBALES -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <div class="card p-5 flex items-center gap-4 border-l-4 border-l-slate-400">
         <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
           <i class="fa-solid fa-scale-balanced text-lg"></i>
@@ -93,6 +93,16 @@
         </div>
       </div>
 
+      <div class="card p-5 flex items-center gap-4 border-l-4 border-l-blue-500">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+          <i class="fa-solid fa-percent text-lg"></i>
+        </div>
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ROI Solo</span>
+          <p id="statROI" class="text-xl font-black text-slate-900 mt-0.5">0.0 %</p>
+        </div>
+      </div>
+
       <div class="card p-5 flex items-center gap-4 border-l-4 border-l-violet-500">
         <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600">
           <i class="fa-solid fa-layer-group text-lg"></i>
@@ -103,13 +113,13 @@
         </div>
       </div>
 
-      <div class="card p-5 flex items-center gap-4 border-l-4 border-l-blue-500">
-        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+      <div class="card p-5 flex items-center gap-4 border-l-4 border-l-fuchsia-500">
+        <div class="w-10 h-10 rounded-xl bg-fuchsia-50 flex items-center justify-center text-fuchsia-600">
           <i class="fa-solid fa-percent text-lg"></i>
         </div>
         <div>
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ROI Total</span>
-          <p id="statROI" class="text-xl font-black text-slate-900 mt-0.5">0.0 %</p>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ROI Combiné</span>
+          <p id="statROICombo" class="text-xl font-black text-slate-900 mt-0.5">0.0 %</p>
         </div>
       </div>
 
@@ -393,6 +403,18 @@
                 🔴 Perdus (<span id="countLost">0</span>)
               </button>
             </div>
+
+            <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 shrink-0">
+              <button onclick="setTypeFilter('ALL')" id="btnFilterTypeAll" class="px-3 py-1 rounded-lg transition bg-white text-slate-800 shadow-sm font-bold whitespace-nowrap">
+                Tous types (<span id="countTypeAll">0</span>)
+              </button>
+              <button onclick="setTypeFilter('SOLO')" id="btnFilterTypeSolo" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                📌 Solo (<span id="countTypeSolo">0</span>)
+              </button>
+              <button onclick="setTypeFilter('COMBO')" id="btnFilterTypeCombo" class="px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap">
+                🔀 Combinés (<span id="countTypeCombo">0</span>)
+              </button>
+            </div>
           </div>
 
           <div id="activeFiltersBanner" class="hidden flex-wrap items-center gap-2 w-full sm:w-auto"></div>
@@ -655,6 +677,9 @@
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let globalBankrollChartInstance = null; // instance Chart.js du graphique global (toujours visible)
     let currentQuickFilter = 'ALL';
+    // Filtre Solo / Combinés / Tous, appliqué uniquement à la liste de l'Historique
+    // (n'affecte pas le Bilan du haut, qui a déjà ses propres cartes Solo/Combiné séparées).
+    let currentTypeFilter = 'ALL';
     // multi-sélection : vide = tous les championnats. Persistée pour survivre à un rechargement de page.
     let currentCompFilters = new Set(JSON.parse(localStorage.getItem('pronotracker_compFilters') || '[]'));
     let compFilterMode = localStorage.getItem('pronotracker_compFilterMode') || 'include'; // 'include' ou 'exclude'
@@ -866,6 +891,7 @@
       currentMarketFilter = null;
       currentOddsFilter = null;
       editingBetId = null;
+      currentTypeFilter = 'ALL';
       selectedBetIds.clear();
       applyTheme();
       updateCompFilterModeButtons();
@@ -1023,10 +1049,17 @@
     }
 
     function exportCSV() {
-      let csv = "Sport,ID,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut\n";
+      let csv = "Sport,ID,Date,Type,Match,Tournoi_Competition,Marche,Pronostic,Cote,Mise,Statut,Combine\n";
       ['football', 'tennis'].forEach(sp => {
         (state[sp] || []).forEach(b => {
-          csv += `"${sp}","${b.id}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}"\n`;
+          const comboLabel = b.comboId ? `Combiné #${b.comboId}` : '';
+          csv += `"${sp}","${b.id}","${b.date}","${b.type || 'Single'}","${b.match}","${b.comp}","${b.market}","${b.prono}",${b.odds},${b.stake},"${b.status}","${comboLabel}"\n`;
+        });
+      });
+      ['football', 'tennis'].forEach(sp => {
+        (state.combos[sp] || []).forEach(combo => {
+          const odds = comboOdds(sp, combo);
+          csv += `"${sp}","${combo.id}","","Combiné","","","","",${odds.toFixed(2)},${combo.stake},"${comboStatus(sp, combo)}","${combo.legIds.length} sélections"\n`;
         });
       });
       const filename = `pronotracker_${new Date().toISOString().split('T')[0]}.csv`;
@@ -1617,6 +1650,25 @@
       render();
     }
 
+    function setTypeFilter(filter) {
+      currentTypeFilter = filter;
+      const buttons = {
+        ALL: document.getElementById('btnFilterTypeAll'),
+        SOLO: document.getElementById('btnFilterTypeSolo'),
+        COMBO: document.getElementById('btnFilterTypeCombo')
+      };
+
+      const activeClass = "px-3 py-1 rounded-lg transition bg-white text-slate-800 shadow-sm font-bold whitespace-nowrap";
+      const inactiveClass = "px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-900 font-medium whitespace-nowrap";
+
+      Object.entries(buttons).forEach(([key, btn]) => {
+        if (btn) btn.className = (filter === key) ? activeClass : inactiveClass;
+      });
+
+      resetHistoryPagination();
+      render();
+    }
+
     function toggleSort(field) {
       if (currentSort.field === field) {
         currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
@@ -1739,7 +1791,7 @@
     // Filtre "brut" (sans tri) selon TOUS les filtres actifs : recherche, période, statut,
     // championnats cochés (si demandé), marché, tranche de cote.
     // Préserve l'ordre d'origine du tableau (utile pour les séries et le graphique cumulé).
-    function getStatsFilteredBetsRaw(applyCompCheckboxFilter, applyQuickStatusFilter = true, applyMarketOddsFilter = true) {
+    function getStatsFilteredBetsRaw(applyCompCheckboxFilter, applyQuickStatusFilter = true, applyMarketOddsFilter = true, applyTypeFilter = true) {
       const currentList = state[currentSport] || [];
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const chartNumbers = getBetChartNumbers();
@@ -1818,7 +1870,15 @@
           matchOdds = getOddsBracket(b.odds || 1) === currentOddsFilter;
         }
 
-        return matchSearch && matchQuick && matchPeriod && matchComp && matchHistoryComp && matchMarket && matchOdds;
+        // Filtre Solo / Combinés / Tous : réservé à l'Historique (voir applyTypeFilter),
+        // n'affecte pas le Bilan du haut ni les tableaux de stats détaillées.
+        let matchType = true;
+        if (applyTypeFilter) {
+          if (currentTypeFilter === 'SOLO') matchType = !b.comboId;
+          else if (currentTypeFilter === 'COMBO') matchType = !!b.comboId;
+        }
+
+        return matchSearch && matchQuick && matchPeriod && matchComp && matchHistoryComp && matchMarket && matchOdds && matchType;
       });
     }
 
@@ -1828,7 +1888,7 @@
     // Le filtre "Tous / En cours / Terminés" est volontairement ignoré ici : il ne sert
     // qu'à naviguer dans l'Historique, pas à restreindre le Bilan.
     function getStatsFilteredBets() {
-      return getStatsFilteredBetsRaw(true, false);
+      return getStatsFilteredBetsRaw(true, false, true, false);
     }
 
     // Source des tableaux "Stats par Type de Prono" et "Stats par Tranche de Cote" : mêmes
@@ -1837,7 +1897,7 @@
     // répartitions, donc s'auto-filtrer les viderait. Le statut Tous/En cours/Terminés est
     // ignoré aussi, comme pour le Bilan (seuls les paris terminés sont comptés plus bas).
     function getGroupedStatsSourceBets() {
-      return getStatsFilteredBetsRaw(true, false, false);
+      return getStatsFilteredBetsRaw(true, false, false, false);
     }
 
     function getFilteredAndSortedBets(applyCompCheckboxFilter = false) {
@@ -2835,6 +2895,7 @@
       if (compSelect) compSelect.value = 'ALL';
 
       setQuickFilter('ALL'); // appelle déjà render()
+      setTypeFilter('ALL');
     }
 
     function render() {
@@ -2877,6 +2938,15 @@
       document.getElementById('countSettled').textContent = tabSettledCount;
       document.getElementById('countWon').textContent = tabWonCount;
       document.getElementById('countLost').textContent = tabLostCount;
+
+      const tabSoloCount = currentList.filter(b => !b.comboId).length;
+      const tabComboCount = currentList.filter(b => b.comboId).length;
+      const countTypeAllEl = document.getElementById('countTypeAll');
+      const countTypeSoloEl = document.getElementById('countTypeSolo');
+      const countTypeComboEl = document.getElementById('countTypeCombo');
+      if (countTypeAllEl) countTypeAllEl.textContent = totalBets;
+      if (countTypeSoloEl) countTypeSoloEl.textContent = tabSoloCount;
+      if (countTypeComboEl) countTypeComboEl.textContent = tabComboCount;
 
       // Bilan (cartes KPI en haut) : calculé uniquement sur les paris qui passent
       // les filtres actifs (championnat / marché / cote / circuit / recherche / période / statut).
@@ -3118,15 +3188,25 @@
       // Volontairement indépendant des filtres du Bilan (championnat/marché/cote/période),
       // un combiné pouvant mélanger plusieurs marchés/championnats différents.
       const combosForSport = state.combos[currentSport] || [];
-      let comboBilan = 0;
+      let comboBilan = 0, comboSettledStake = 0;
       combosForSport.forEach(combo => {
         const status = comboStatus(currentSport, combo);
-        if (status === 'Won' || status === 'Lost') comboBilan += comboProfit(currentSport, combo);
+        if (status === 'Won' || status === 'Lost') {
+          comboBilan += comboProfit(currentSport, combo);
+          comboSettledStake += (combo.stake || 0);
+        }
       });
       const profitComboEl = document.getElementById('statProfitCombo');
       if (profitComboEl) {
         profitComboEl.textContent = (comboBilan >= 0 ? '+' : '') + comboBilan.toFixed(2) + ' €';
         profitComboEl.className = 'text-xl font-black ' + (comboBilan > 0 ? 'text-emerald-600' : comboBilan < 0 ? 'text-rose-600' : 'text-slate-800');
+      }
+
+      const roiCombo = comboSettledStake > 0 ? (comboBilan / comboSettledStake) * 100 : 0;
+      const roiComboEl = document.getElementById('statROICombo');
+      if (roiComboEl) {
+        roiComboEl.textContent = (roiCombo >= 0 ? '+' : '') + roiCombo.toFixed(1) + ' %';
+        roiComboEl.className = 'text-xl font-black ' + (roiCombo > 0 ? 'text-emerald-600' : roiCombo < 0 ? 'text-rose-600' : 'text-slate-800');
       }
 
       renderCombos();
