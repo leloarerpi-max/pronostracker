@@ -619,6 +619,9 @@
     if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
     // Sélection en cours (cases cochées dans l'Historique) en vue de créer un combiné.
     let selectedBetIds = new Set();
+    // Affichage de la liste "Mes Combinés" : pagination + état plié/déplié par combiné.
+    let visibleCombosCount = 5;
+    let comboOverrides = {}; // { [comboId]: true|false } — ne contient que les combinés dépliés/repliés manuellement.
     
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
     let globalBankrollChartInstance = null; // instance Chart.js du graphique global (toujours visible)
@@ -839,6 +842,8 @@
       editingBetId = null;
       currentTypeFilter = 'ALL';
       selectedBetIds.clear();
+      visibleCombosCount = 5;
+      comboOverrides = {};
       applyTheme();
       updateCompFilterModeButtons();
 
@@ -2043,6 +2048,32 @@
       saveState();
     }
 
+    function isComboExpanded(comboId, status) {
+      if (comboOverrides.hasOwnProperty(comboId)) return comboOverrides[comboId];
+      // Par défaut : les combinés réglés (Gagné/Perdu) sont repliés, ceux en cours restent dépliés.
+      return status === 'Pending';
+    }
+
+    function toggleComboExpand(comboId) {
+      const combos = state.combos[currentSport] || [];
+      const combo = combos.find(c => c.id === comboId);
+      if (!combo) return;
+      const status = comboStatus(currentSport, combo);
+      comboOverrides[comboId] = !isComboExpanded(comboId, status);
+      renderCombos();
+    }
+
+    function toggleAllCombos(expand) {
+      const combos = state.combos[currentSport] || [];
+      combos.forEach(c => { comboOverrides[c.id] = expand; });
+      renderCombos();
+    }
+
+    function loadMoreCombos() {
+      visibleCombosCount += 5;
+      renderCombos();
+    }
+
     function renderCombos() {
       const container = document.getElementById('combosListContainer');
       if (!container) return;
@@ -2053,15 +2084,54 @@
         return;
       }
 
-      container.innerHTML = combos.slice().reverse().map(combo => {
+      const sorted = combos.slice().reverse();
+      const pendingCount = sorted.filter(c => comboStatus(currentSport, c) === 'Pending').length;
+      const settledCount = sorted.length - pendingCount;
+      const visible = sorted.slice(0, visibleCombosCount);
+
+      let html = `
+        <div class="flex items-center justify-between flex-wrap gap-2 text-[11px] text-slate-500 font-semibold pb-1">
+          <span>${sorted.length} combiné(s) · ${pendingCount} en cours · ${settledCount} réglé(s)</span>
+          <div class="flex items-center gap-3">
+            <button onclick="toggleAllCombos(true)" class="text-violet-600 hover:text-violet-800 font-bold">Tout déplier</button>
+            <button onclick="toggleAllCombos(false)" class="text-slate-500 hover:text-slate-700 font-bold">Tout replier</button>
+          </div>
+        </div>
+      `;
+
+      html += visible.map(combo => {
         const legs = comboLegs(currentSport, combo);
         const status = comboStatus(currentSport, combo);
         const odds = comboOdds(currentSport, combo);
         const profit = comboProfit(currentSport, combo);
+        const expanded = isComboExpanded(combo.id, status);
 
         let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold inline-block">⏳ En cours</span>`;
         if (status === 'Won') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold inline-block">✅ Gagné</span>`;
         if (status === 'Lost') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-extrabold inline-block">❌ Perdu</span>`;
+
+        const profitColor = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-rose-600' : 'text-slate-500';
+        const profitText = status === 'Pending' ? '–' : (profit >= 0 ? '+' : '') + profit.toFixed(2) + ' €';
+
+        // Ligne d'en-tête compacte, toujours visible, cliquable pour plier/déplier.
+        const headerRow = `
+          <div onclick="toggleComboExpand(${combo.id})" class="flex items-center justify-between gap-2 flex-wrap cursor-pointer select-none">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-chevron-${expanded ? 'down' : 'right'} text-slate-400 text-[10px] w-3"></i>
+              <span class="text-xs font-black text-violet-700">🔀 ${legs.length} sélections</span>
+              ${statusBadge}
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="font-black text-blue-600">${odds.toFixed(2)}</span>
+              <span class="font-bold text-slate-700">${(combo.stake || 0)} €</span>
+              <span class="font-black ${profitColor}">${profitText}</span>
+            </div>
+          </div>
+        `;
+
+        if (!expanded) {
+          return `<div class="border border-slate-200 rounded-xl px-3.5 py-2.5 hover:bg-slate-50 transition">${headerRow}</div>`;
+        }
 
         const legsHtml = legs.map(l => {
           let legDot = '⏳';
@@ -2073,21 +2143,9 @@
           </div>`;
         }).join('');
 
-        const profitColor = profit > 0 ? 'text-emerald-600' : profit < 0 ? 'text-rose-600' : 'text-slate-500';
-
         return `
           <div class="border border-slate-200 rounded-xl p-3.5 space-y-2">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-black text-violet-700">🔀 Combiné (${legs.length} sélections)</span>
-                ${statusBadge}
-              </div>
-              <div class="flex items-center gap-3 text-xs">
-                <span class="font-black text-blue-600">${odds.toFixed(2)}</span>
-                <span class="font-bold text-slate-700">${(combo.stake || 0)} €</span>
-                <span class="font-black ${profitColor}">${status === 'Pending' ? '–' : (profit >= 0 ? '+' : '') + profit.toFixed(2) + ' €'}</span>
-              </div>
-            </div>
+            ${headerRow}
             <div class="bg-slate-50 rounded-lg divide-y divide-slate-100">${legsHtml}</div>
             <div class="flex justify-end gap-2 pt-1">
               <button onclick="decombineCombo(${combo.id})" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-bold text-[11px] hover:bg-slate-50 transition"><i class="fa-solid fa-link-slash mr-1"></i>Décombiner</button>
@@ -2095,7 +2153,18 @@
             </div>
           </div>
         `;
-      }).join('');
+      }).join('<div class="h-2"></div>');
+
+      if (sorted.length > visibleCombosCount) {
+        const remaining = sorted.length - visibleCombosCount;
+        html += `
+          <div class="text-center pt-2">
+            <button onclick="loadMoreCombos()" class="text-violet-600 hover:text-violet-800 font-bold text-xs">Charger plus (+${Math.min(5, remaining)})</button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
     }
 
     // ===================== FIN COMBINÉS =====================
