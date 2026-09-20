@@ -24,6 +24,90 @@
     .input-field:focus { outline: none; border-color: #2563eb; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background-color: #f1f5f9; }
+
+    /* ===== Styles scopés de l'Analyseur (n'affectent rien en dehors de .analyzer-panel) ===== */
+    .analyzer-panel {
+      --a-bg-color: #0b0f19;
+      --a-card-bg: #1e293b;
+      --a-text-color: #f8fafc;
+      --a-accent-color: #38bdf8;
+      --a-border-color: #334155;
+      --a-muted-color: #94a3b8;
+      --a-success-color: #22c55e;
+      --a-warning-color: #f59e0b;
+      background-color: var(--a-bg-color);
+      color: var(--a-text-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      border-radius: 1rem;
+      padding: 20px;
+    }
+    .analyzer-panel h1 { text-align: center; color: var(--a-accent-color); margin-bottom: 8px; margin-top: 0; }
+    .analyzer-panel .sous-titre { text-align: center; color: var(--a-muted-color); margin-bottom: 25px; font-size: 14px; }
+    .analyzer-panel .panel {
+      background-color: var(--a-card-bg);
+      border: 1px solid var(--a-border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    .analyzer-panel textarea {
+      width: 100%; height: 220px;
+      background-color: #0f172a; color: var(--a-text-color);
+      border: 1px solid var(--a-border-color); border-radius: 8px;
+      padding: 12px; font-size: 14px; resize: vertical;
+      box-sizing: border-box; margin-bottom: 15px; font-family: inherit;
+    }
+    .analyzer-panel .boutons { display: flex; gap: 10px; }
+    .analyzer-panel button {
+      background-color: var(--a-accent-color); color: #0f172a;
+      border: none; padding: 14px 24px; font-size: 15px; font-weight: bold;
+      border-radius: 8px; cursor: pointer; flex: 1;
+    }
+    .analyzer-panel button:hover { background-color: #0ea5e9; }
+    .analyzer-panel button.secondaire { background-color: var(--a-border-color); color: var(--a-text-color); }
+    .analyzer-panel button.secondaire:hover { background-color: #475569; }
+    .analyzer-panel h2, .analyzer-panel h3 { color: var(--a-accent-color); border-bottom: 2px solid var(--a-border-color); padding-bottom: 8px; margin-top: 25px; }
+    .analyzer-panel ul { padding-left: 20px; }
+    .analyzer-panel li { margin-bottom: 8px; line-height: 1.5; }
+    .analyzer-panel .badge {
+      display: inline-block; padding: 3px 8px; font-size: 12px; font-weight: bold;
+      border-radius: 4px; background-color: var(--a-border-color); color: var(--a-accent-color); margin-left: 8px;
+    }
+    .analyzer-panel .avertissement {
+      background-color: #0f172a; border-left: 4px solid var(--a-muted-color);
+      padding: 12px 15px; border-radius: 0 8px 8px 0; font-size: 13px;
+      color: var(--a-muted-color); margin-top: 15px;
+    }
+    .analyzer-panel .bet-card {
+      background-color: #0f172a; border-left: 5px solid var(--a-success-color);
+      padding: 15px; margin-bottom: 15px; border-radius: 0 8px 8px 0;
+      border-top: 1px solid var(--a-border-color); border-right: 1px solid var(--a-border-color);
+      border-bottom: 1px solid var(--a-border-color);
+    }
+    .analyzer-panel .bet-title { font-size: 17px; font-weight: bold; color: var(--a-success-color); margin-bottom: 6px; }
+    .analyzer-panel .bet-meta { font-size: 13px; color: var(--a-muted-color); margin-bottom: 6px; }
+    .analyzer-panel .conflit { border-left-color: var(--a-warning-color); }
+    .analyzer-panel .conflit .bet-title { color: var(--a-warning-color); }
+    .analyzer-panel .aucune-donnee { color: var(--a-muted-color); font-style: italic; }
+    .analyzer-panel select {
+      background-color: #0f172a; color: var(--a-text-color); border: 1px solid var(--a-border-color);
+      border-radius: 8px; padding: 8px; font-size: 13px; margin-bottom: 12px;
+    }
+    .analyzer-panel table.paris-table {
+      width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;
+    }
+    .analyzer-panel table.paris-table th, .analyzer-panel table.paris-table td {
+      border: 1px solid var(--a-border-color); padding: 8px 10px; text-align: left;
+    }
+    .analyzer-panel table.paris-table th {
+      background-color: #0f172a; color: var(--a-accent-color); font-weight: bold;
+    }
+    .analyzer-panel table.paris-table td.mise-cell input {
+      width: 70px; background-color: #0f172a; color: var(--a-text-color);
+      border: 1px solid var(--a-border-color); border-radius: 4px; padding: 4px 6px; font-size: 13px;
+    }
+    .analyzer-panel .copie-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
+    .analyzer-panel .enregistrer-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
   </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -55,6 +139,18 @@
         </label>
       </div>
     </div>
+
+    <!-- ONGLETS PRINCIPAUX -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-1.5 flex items-center gap-1.5 shadow-sm w-full sm:w-auto sm:inline-flex">
+      <button onclick="switchView('tracker')" id="btnViewTracker" class="px-4 py-2 rounded-xl transition bg-blue-600 text-white shadow-sm font-bold text-sm flex items-center gap-2">
+        <i class="fa-solid fa-chart-line"></i> Mes Paris
+      </button>
+      <button onclick="switchView('analyzer')" id="btnViewAnalyzer" class="px-4 py-2 rounded-xl transition text-slate-600 hover:text-slate-900 font-bold text-sm flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass-chart"></i> 🔍 Analyseur
+      </button>
+    </div>
+
+    <div id="trackerViewContent" class="space-y-8">
 
     <!-- ALERTE DE SAUVEGARDE -->
     <div id="backupBanner" class="hidden items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold px-4 py-3 rounded-xl">
@@ -432,6 +528,31 @@
         <i class="fa-solid fa-layer-group text-violet-600"></i> Mes Combinés
       </h3>
       <div id="combosListContainer" class="space-y-3"></div>
+    </div>
+
+    </div>
+    <!-- FIN trackerViewContent -->
+
+    <!-- VUE ANALYSEUR -->
+    <div id="analyzerViewContent" class="hidden">
+      <div class="analyzer-panel">
+        <h1>Analyseur de Paris Sportifs Pro</h1>
+        <p class="sous-titre">Reconnaît les textes en français ET en anglais. Extrait les cotes et statistiques, et calcule 3 paris par un moteur de règles (pas d'IA)</p>
+
+        <div class="panel">
+          <label for="rawInput"><strong>Colle ton texte brut (français ou anglais, idéalement avec cotes et % par équipe) :</strong></label>
+          <textarea id="rawInput" placeholder="Colle ton texte d'analyse complet ici, en français ou en anglais..."></textarea>
+          <div class="boutons">
+            <button onclick="analyserEtGenerer()">Analyser et calculer les paris</button>
+            <button class="secondaire" onclick="exporterTxt()">Exporter en .txt</button>
+          </div>
+        </div>
+
+        <div class="panel" id="outputPanel" style="display: none;">
+          <h2 style="margin-top: 0;">Rapport d'Analyse</h2>
+          <div id="resultContent"></div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -829,6 +950,613 @@
       if (btn) {
         btn.onmouseenter = () => { btn.style.backgroundColor = theme.mainHover; };
         btn.onmouseleave = () => { btn.style.backgroundColor = theme.main; };
+      }
+    }
+
+    // ===================== ANALYSEUR DE PARIS (intégré au tracker) =====================
+
+    let dernierRapportTexte = "";
+
+    function echapper(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+    function fmt(v) { return (v === null || v === undefined) ? '—' : v + '%'; }
+    function fmtCote(v) { return (v === null || v === undefined) ? '—' : v.toFixed(2).replace('.', ','); }
+
+    function directionLabel(cle) {
+        const m = cle.match(/^(over|under)([\d.]+)$/);
+        if (!m) return cle;
+        const dir = m[1] === 'over' ? 'Plus de' : 'Moins de';
+        const val = m[2].replace('.', ',');
+        return `${dir} ${val} but(s)`;
+    }
+
+    function extraireCompetition(texte) {
+        let m = texte.match(/Comp[ée]tition\s*:\s*([^.]+)\./i) || texte.match(/League\s*:\s*([^.]+)\./i);
+        if (m) return m[1].trim();
+
+        const ligues = [
+            'Ligue 1', 'Ligue 2', 'Serie A', 'La Liga', 'LaLiga', 'Premier League',
+            'Bundesliga', 'Champions League', 'Ligue des champions', 'Europa League',
+            'Eredivisie', 'Primeira Liga', 'Jupiler Pro League', 'Süper Lig',
+        ];
+        for (const ligue of ligues) {
+            if (texte.toLowerCase().includes(ligue.toLowerCase())) return ligue;
+        }
+        return null;
+    }
+
+    function separerMarchePronostic(label, home, away) {
+        if (label === 'Match nul à la mi-temps') return { marche: 'Résultat 1ère mi-temps', pronostic: 'Match nul' };
+        if (label === 'Match nul au score final') return { marche: 'Résultat du match', pronostic: 'Match nul' };
+        if (label === `${home} gagne la 1ère mi-temps`) return { marche: 'Résultat 1ère mi-temps', pronostic: `${home} gagne` };
+        if (label === `${away} gagne la 1ère mi-temps`) return { marche: 'Résultat 1ère mi-temps', pronostic: `${away} gagne` };
+        if (label === `${home} gagne le match`) return { marche: 'Résultat du match', pronostic: `${home} gagne` };
+        if (label === `${away} gagne le match`) return { marche: 'Résultat du match', pronostic: `${away} gagne` };
+        let m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) en 1ère mi-temps$/);
+        if (m) return { marche: 'Total buts 1ère mi-temps', pronostic: `${m[1]} ${m[2]} but(s)` };
+        m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) sur le match complet$/);
+        if (m) return { marche: 'Total buts du match', pronostic: `${m[1]} ${m[2]} but(s)` };
+        if (label.includes('BTTS oui')) return { marche: 'Les deux équipes marquent', pronostic: 'Oui' };
+        if (label.includes('BTTS non')) return { marche: 'Les deux équipes marquent', pronostic: 'Non' };
+        return { marche: label, pronostic: '' };
+    }
+
+    function extraireEquipes(texte) {
+        let home = null, away = null;
+
+        let m = texte.match(/The home team is ([^.]+)\./i);
+        if (m) home = m[1].trim();
+        m = texte.match(/The away team is ([^.]+)\./i);
+        if (m) away = m[1].trim();
+
+        if (!home) {
+            m = texte.match(/L['’]équipe (?:à domicile|recevante|hôte) est ([^.]+)\./i);
+            if (m) home = m[1].trim();
+        }
+        if (!away) {
+            m = texte.match(/L['’]équipe (?:à l['’]extérieur|visiteuse) est ([^.]+)\./i);
+            if (m) away = m[1].trim();
+        }
+
+        if (!home || !away) {
+            m = texte.match(/Match\s*:\s*([^.]+?)\s+(?:vs\.?|contre)\s+([^.]+)\./i) ||
+                texte.match(/([A-ZÀ-Ý][\wà-ÿ'\- ]+?)\s+(?:vs\.?|contre)\s+([A-ZÀ-Ý][\wà-ÿ'\- ]+)/);
+            if (m) { home = home || m[1].trim(); away = away || m[2].trim(); }
+        }
+        return { home, away };
+    }
+
+    function parseResultatsEquipe(texte, team) {
+        const t = echapper(team);
+        const verbMapEN = { won: 'win', drew: 'draw', lost: 'loss' };
+        const res = {
+            home: { win: null, draw: null, loss: null },
+            away: { win: null, draw: null, loss: null },
+            homeFT: { win: null, draw: null, loss: null },
+            awayFT: { win: null, draw: null, loss: null },
+        };
+
+        function collectEN(regexStr, obj) {
+            const re = new RegExp(regexStr, 'gi');
+            let m;
+            while ((m = re.exec(texte))) obj[verbMapEN[m[1].toLowerCase()]] = parseInt(m[2], 10);
+        }
+        collectEN(`In ${t}'s home matches this season, ${t} (won|drew|lost) the first half in (\\d+)% of matches`, res.home);
+        collectEN(`In ${t}'s away matches this season, ${t} (won|drew|lost) the first half in (\\d+)% of matches`, res.away);
+        collectEN(`In ${t}'s home matches this season, ${t} (won|drew|lost) at full time in (\\d+)% of matches`, res.homeFT);
+        collectEN(`In ${t}'s away matches this season, ${t} (won|drew|lost) at full time in (\\d+)% of matches`, res.awayFT);
+
+        const verbeFR = '(a gagné|remporte|a remporté|gagne|a fait match nul|fait match nul|a été tenu en échec|a perdu|perd)';
+        function verbeVersCleFR(v) {
+            v = v.toLowerCase();
+            if (v.includes('nul') || v.includes('tenu en échec')) return 'draw';
+            if (v.includes('perd')) return 'loss';
+            return 'win';
+        }
+        function collectFR(scopeStr, periodeStr, obj) {
+            const re = new RegExp(`${scopeStr},\\s*${t} ${verbeFR} ${periodeStr} dans (\\d+)\\s?% des (?:matchs|cas)`, 'gi');
+            let m;
+            while ((m = re.exec(texte))) obj[verbeVersCleFR(m[1])] = parseInt(m[2], 10);
+        }
+        const scopeDomicileFR = `Dans les matchs (?:à domicile|domicile) de ${t}(?: cette saison)?`;
+        const scopeExterieurFR = `Dans les matchs (?:à l['’]extérieur|extérieur) de ${t}(?: cette saison)?`;
+        collectFR(scopeDomicileFR, 'la première mi-temps', res.home);
+        collectFR(scopeExterieurFR, 'la première mi-temps', res.away);
+        collectFR(scopeDomicileFR, '(?:le match|à la fin du match)', res.homeFT);
+        collectFR(scopeExterieurFR, '(?:le match|à la fin du match)', res.awayFT);
+
+        return res;
+    }
+
+    function parseButsEquipe(texte, team) {
+        const t = echapper(team);
+        const data = { home1H: {}, away1H: {}, homeFT: {}, awayFT: {} };
+
+        function collectEN(regexStr, obj) {
+            const re = new RegExp(regexStr, 'gi');
+            let m;
+            while ((m = re.exec(texte))) obj[`${m[1].toLowerCase()}${m[2]}`] = parseInt(m[3], 10);
+        }
+        collectEN(`In ${t}'s home matches this season, total first-half goals were (over|under) ([\\d.]+) in (\\d+)% of matches`, data.home1H);
+        collectEN(`In ${t}'s away matches this season, total first-half goals were (over|under) ([\\d.]+) in (\\d+)% of matches`, data.away1H);
+        collectEN(`In ${t}'s home matches this season, total match goals at full time were (over|under) ([\\d.]+) in (\\d+)% of matches`, data.homeFT);
+        collectEN(`In ${t}'s away matches this season, total match goals at full time were (over|under) ([\\d.]+) in (\\d+)% of matches`, data.awayFT);
+
+        function collectFR(scopeStr, sujetStr, obj) {
+            const re = new RegExp(`${scopeStr},\\s*${sujetStr} était (supérieur|inférieur) à ([\\d.,]+) dans (\\d+)\\s?% des (?:matchs|cas)`, 'gi');
+            let m;
+            while ((m = re.exec(texte))) {
+                const dir = m[1].toLowerCase() === 'supérieur' ? 'over' : 'under';
+                const seuil = m[2].replace(',', '.');
+                obj[`${dir}${seuil}`] = parseInt(m[3], 10);
+            }
+        }
+        const scopeDomicileFR = `Dans les matchs (?:à domicile|domicile) de ${t}(?: cette saison)?`;
+        const scopeExterieurFR = `Dans les matchs (?:à l['’]extérieur|extérieur) de ${t}(?: cette saison)?`;
+        collectFR(scopeDomicileFR, 'le total de buts en première mi-temps', data.home1H);
+        collectFR(scopeExterieurFR, 'le total de buts en première mi-temps', data.away1H);
+        collectFR(scopeDomicileFR, 'le total de buts du match', data.homeFT);
+        collectFR(scopeExterieurFR, 'le total de buts du match', data.awayFT);
+
+        return data;
+    }
+
+    function parseBTTSEquipe(texte, team) {
+        const t = echapper(team);
+        const data = { home: {}, away: {} };
+
+        function collectScopeEN(scope, obj) {
+            let m = texte.match(new RegExp(`${scope}, both teams scored at full time in (\\d+)% of matches`, 'i'));
+            if (m) obj.both = parseInt(m[1], 10);
+            m = texte.match(new RegExp(`${scope}, at least one team failed to score at full time in (\\d+)% of matches`, 'i'));
+            if (m) obj.fail = parseInt(m[1], 10);
+        }
+        collectScopeEN(`In ${t}'s home matches this season`, data.home);
+        collectScopeEN(`In ${t}'s away matches this season`, data.away);
+
+        function collectScopeFR(scope, obj) {
+            let m = texte.match(new RegExp(`${scope},\\s*les deux équipes ont marqué dans (\\d+)\\s?% des (?:matchs|cas)`, 'i'));
+            if (m) obj.both = parseInt(m[1], 10);
+            m = texte.match(new RegExp(`${scope},\\s*au moins une équipe n['’]a pas marqué dans (\\d+)\\s?% des (?:matchs|cas)`, 'i'));
+            if (m) obj.fail = parseInt(m[1], 10);
+        }
+        collectScopeFR(`Dans les matchs (?:à domicile|domicile) de ${t}(?: cette saison)?`, data.home);
+        collectScopeFR(`Dans les matchs (?:à l['’]extérieur|extérieur) de ${t}(?: cette saison)?`, data.away);
+
+        return data;
+    }
+
+    function parseCotes(texte, home, away) {
+        const cotes = {};
+        const th = echapper(home || '§§§');
+        const ta = echapper(away || '§§§');
+        let m;
+
+        m = texte.match(new RegExp(`The odds for ${th} to win the first half are ([\\d.]+)`, 'i'));
+        if (m) cotes.home_win_1H = parseFloat(m[1]);
+        m = texte.match(new RegExp(`The odds for ${ta} to win the first half are ([\\d.]+)`, 'i'));
+        if (m) cotes.away_win_1H = parseFloat(m[1]);
+        m = texte.match(/The odds for a draw in the first half are ([\d.]+)/i);
+        if (m) cotes.draw_1H = parseFloat(m[1]);
+        m = texte.match(new RegExp(`The odds for ${th} to win at full time are ([\\d.]+)`, 'i'));
+        if (m) cotes.home_win_FT = parseFloat(m[1]);
+        m = texte.match(new RegExp(`The odds for ${ta} to win at full time are ([\\d.]+)`, 'i'));
+        if (m) cotes.away_win_FT = parseFloat(m[1]);
+        m = texte.match(/The odds for a draw at full time are ([\d.]+)/i);
+        if (m) cotes.draw_FT = parseFloat(m[1]);
+        let re = /The odds for the total first-half goals to be (over|under) ([\d.]+) are ([\d.]+)/gi;
+        while ((m = re.exec(texte))) cotes[`${m[1].toLowerCase()}${m[2]}_1H`] = parseFloat(m[3]);
+        re = /The odds for the total match goals at full time to be (over|under) ([\d.]+) are ([\d.]+)/gi;
+        while ((m = re.exec(texte))) cotes[`${m[1].toLowerCase()}${m[2]}_FT`] = parseFloat(m[3]);
+        m = texte.match(/The odds for both teams to score at full time are ([\d.]+)/i);
+        if (m) cotes.btts_yes = parseFloat(m[1]);
+        m = texte.match(/The odds for at least one team to fail to score at full time are ([\d.]+)/i);
+        if (m) cotes.btts_no = parseFloat(m[1]);
+
+        function siVide(cle, val) { if (cotes[cle] === undefined) cotes[cle] = val; }
+
+        m = texte.match(new RegExp(`(?:La |Les )?cotes? pour que ${th} gagne la première mi-temps (?:est|sont) de ([\\d.,]+)`, 'i'));
+        if (m) siVide('home_win_1H', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(new RegExp(`(?:La |Les )?cotes? pour que ${ta} gagne la première mi-temps (?:est|sont) de ([\\d.,]+)`, 'i'));
+        if (m) siVide('away_win_1H', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(/(?:La |Les )?cotes? pour un match nul en première mi-temps (?:est|sont) de ([\d.,]+)/i);
+        if (m) siVide('draw_1H', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(new RegExp(`(?:La |Les )?cotes? pour que ${th} gagne le match (?:est|sont) de ([\\d.,]+)`, 'i'));
+        if (m) siVide('home_win_FT', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(new RegExp(`(?:La |Les )?cotes? pour que ${ta} gagne le match (?:est|sont) de ([\\d.,]+)`, 'i'));
+        if (m) siVide('away_win_FT', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(/(?:La |Les )?cotes? pour un match nul au score final (?:est|sont) de ([\d.,]+)/i);
+        if (m) siVide('draw_FT', parseFloat(m[1].replace(',', '.')));
+
+        re = /cotes? pour que le total de buts en première mi-temps soit (supérieur|inférieur) à ([\d.,]+) (?:est|sont) de ([\d.,]+)/gi;
+        while ((m = re.exec(texte))) {
+            const dir = m[1].toLowerCase() === 'supérieur' ? 'over' : 'under';
+            siVide(`${dir}${m[2].replace(',', '.')}_1H`, parseFloat(m[3].replace(',', '.')));
+        }
+        re = /cotes? pour que le total de buts du match soit (supérieur|inférieur) à ([\d.,]+) (?:est|sont) de ([\d.,]+)/gi;
+        while ((m = re.exec(texte))) {
+            const dir = m[1].toLowerCase() === 'supérieur' ? 'over' : 'under';
+            siVide(`${dir}${m[2].replace(',', '.')}_FT`, parseFloat(m[3].replace(',', '.')));
+        }
+        m = texte.match(/cotes? pour que les deux équipes marquent (?:est|sont) de ([\d.,]+)/i);
+        if (m) siVide('btts_yes', parseFloat(m[1].replace(',', '.')));
+        m = texte.match(/cotes? pour qu['’]au moins une équipe ne marque pas (?:est|sont) de ([\d.,]+)/i);
+        if (m) siVide('btts_no', parseFloat(m[1].replace(',', '.')));
+
+        return cotes;
+    }
+
+    const MARQUEURS_INSTRUCTION = [
+        'act as a', 'analyze this football match', 'be practical', 'focus on value',
+        'never overstate', 'first, search the web', 'you must actively search',
+        'for fresh external factors, focus only', 'do not infer', 'do not use rankings',
+        'do not invent context', 'if an important external factor', 'mention the source type',
+        'separate clearly', 'when a super stat is mentioned', 'then combine those fresh',
+        'explain the strongest combined', 'clearly separate', 'the final answer must be written',
+        'keep the analysis detailed', 'if recent external factors and datafoot',
+        'do not use rankings, historical averages',
+        'agis comme un', 'analyse ce match de football', 'sois pratique', 'concentre-toi sur la valeur',
+        'ne surestime jamais', 'cherche d\u2019abord sur le web', 'tu dois activement rechercher',
+        'mentionne le type de source', 's\u00e9pare clairement', 'la r\u00e9ponse finale doit \u00eatre r\u00e9dig\u00e9e',
+    ];
+
+    function estUneInstruction(phrase) {
+        const p = phrase.toLowerCase();
+        return MARQUEURS_INSTRUCTION.some(marqueur => p.includes(marqueur));
+    }
+
+    function extraireFacteursExternes(texte) {
+        const mots = [
+            'forfait', 'blessure', 'blessé', 'incertain', 'entraîneur', 'entraineur',
+            'conférence', 'absent', 'suspendu', 'suspension', 'infirmerie',
+            'injury', 'injured', 'doubtful', 'uncertain', 'unavailable', 'sidelined',
+            'suspended', 'suspension', 'coach', 'press conference', 'absent', 'ruled out',
+        ];
+        const sentences = texte.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+        return sentences.filter(s => !estUneInstruction(s) && mots.some(mot => s.toLowerCase().includes(mot)));
+    }
+
+    function genererCandidats(home, away, resHome, resAway, butsHome, butsAway, bttsHome, bttsAway, cotes) {
+        const candidats = [];
+
+        function ajouter(label, pctA, pctB, cote, detail) {
+            if (pctA == null && pctB == null) return;
+            if (cote == null) return;
+            let score, spread, nbSources;
+            if (pctA != null && pctB != null) {
+                score = (pctA + pctB) / 2;
+                spread = Math.abs(pctA - pctB);
+                nbSources = 2;
+            } else {
+                score = pctA != null ? pctA : pctB;
+                spread = null;
+                nbSources = 1;
+            }
+            const finalScore = nbSources === 2 ? (score - spread * 0.5) : (score - 15);
+            candidats.push({ label, score, spread, nbSources, cote, detail, finalScore, conflit: nbSources === 2 && spread >= 60 });
+        }
+
+        ajouter(`${home} gagne la 1ère mi-temps`, resHome.home.win, resAway.away.loss, cotes.home_win_1H,
+            `${home} (domicile) gagne sa 1ère MT ${fmt(resHome.home.win)} du temps · ${away} (extérieur) perd sa 1ère MT ${fmt(resAway.away.loss)} du temps`);
+        ajouter(`Match nul à la mi-temps`, resHome.home.draw, resAway.away.draw, cotes.draw_1H,
+            `${home} (domicile) nul en 1ère MT ${fmt(resHome.home.draw)} du temps · ${away} (extérieur) nul en 1ère MT ${fmt(resAway.away.draw)} du temps`);
+        ajouter(`${away} gagne la 1ère mi-temps`, resHome.home.loss, resAway.away.win, cotes.away_win_1H,
+            `${home} (domicile) perd sa 1ère MT ${fmt(resHome.home.loss)} du temps · ${away} (extérieur) gagne sa 1ère MT ${fmt(resAway.away.win)} du temps`);
+
+        ajouter(`${home} gagne le match`, resHome.homeFT.win, resAway.awayFT.loss, cotes.home_win_FT,
+            `${home} (domicile) gagne ${fmt(resHome.homeFT.win)} du temps · ${away} (extérieur) perd ${fmt(resAway.awayFT.loss)} du temps`);
+        ajouter(`Match nul au score final`, resHome.homeFT.draw, resAway.awayFT.draw, cotes.draw_FT,
+            `${home} (domicile) nul ${fmt(resHome.homeFT.draw)} du temps · ${away} (extérieur) nul ${fmt(resAway.awayFT.draw)} du temps`);
+        ajouter(`${away} gagne le match`, resHome.homeFT.loss, resAway.awayFT.win, cotes.away_win_FT,
+            `${home} (domicile) perd ${fmt(resHome.homeFT.loss)} du temps · ${away} (extérieur) gagne ${fmt(resAway.awayFT.win)} du temps`);
+
+        const seuils1H = new Set([...Object.keys(butsHome.home1H), ...Object.keys(butsAway.away1H)]);
+        seuils1H.forEach(cle => {
+            ajouter(`${directionLabel(cle)} en 1ère mi-temps`, butsHome.home1H[cle], butsAway.away1H[cle], cotes[`${cle}_1H`],
+                `${home} (domicile) ${fmt(butsHome.home1H[cle])} · ${away} (extérieur) ${fmt(butsAway.away1H[cle])}`);
+        });
+
+        const seuilsFT = new Set([...Object.keys(butsHome.homeFT), ...Object.keys(butsAway.awayFT)]);
+        seuilsFT.forEach(cle => {
+            ajouter(`${directionLabel(cle)} sur le match complet`, butsHome.homeFT[cle], butsAway.awayFT[cle], cotes[`${cle}_FT`],
+                `${home} (domicile) ${fmt(butsHome.homeFT[cle])} · ${away} (extérieur) ${fmt(butsAway.awayFT[cle])}`);
+        });
+
+        ajouter(`Les deux équipes marquent (BTTS oui)`, bttsHome.home.both, bttsAway.away.both, cotes.btts_yes,
+            `${home} (domicile) BTTS ${fmt(bttsHome.home.both)} · ${away} (extérieur) BTTS ${fmt(bttsAway.away.both)}`);
+        ajouter(`Au moins une équipe ne marque pas (BTTS non)`, bttsHome.home.fail, bttsAway.away.fail, cotes.btts_no,
+            `${home} (domicile) ${fmt(bttsHome.home.fail)} · ${away} (extérieur) ${fmt(bttsAway.away.fail)}`);
+
+        return candidats;
+    }
+
+    // Convertit une date extraite du texte (formats variés) vers le format YYYY-MM-DD attendu
+    // par le tracker. Repli sur la date du jour si le format n'est pas reconnu.
+    function normalizeDateAnalyseur(str) {
+        if (!str) return new Date().toISOString().split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+        const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m) {
+            const [, d, mo, y] = m;
+            return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function analyserEtGenerer() {
+        const rawText = document.getElementById('rawInput').value;
+        if (!rawText.trim()) { alert("Veuillez coller du texte."); return; }
+
+        let matchName = "Match de Football";
+        let mm = rawText.match(/Match\s*:\s*([^.]+)\./i);
+        if (mm) matchName = mm[1].trim();
+
+        let matchDate = "Date non spécifiée";
+        let md = rawText.match(/Date\s*:\s*([0-9\-\/]+)/i);
+        if (md) matchDate = md[1].trim();
+
+        const { home, away } = extraireEquipes(rawText);
+        const facteursExternes = extraireFacteursExternes(rawText);
+        const competition = extraireCompetition(rawText);
+
+        let html = `<h3>Fiche de Match : ${matchName}<span class="badge">${matchDate}</span></h3>`;
+
+        html += `<h3>1. Facteurs Externes & Infirmerie</h3><ul>`;
+        if (facteursExternes.length) {
+            facteursExternes.forEach(p => html += `<li>${p}</li>`);
+        } else {
+            html += `<li class="aucune-donnee">Aucun facteur externe critique isolé dans le texte fourni.</li>`;
+        }
+        html += `</ul>`;
+
+        let candidats = [];
+        if (home && away) {
+            const resHome = parseResultatsEquipe(rawText, home);
+            const resAway = parseResultatsEquipe(rawText, away);
+            const butsHome = parseButsEquipe(rawText, home);
+            const butsAway = parseButsEquipe(rawText, away);
+            const bttsHome = parseBTTSEquipe(rawText, home);
+            const bttsAway = parseBTTSEquipe(rawText, away);
+            const cotes = parseCotes(rawText, home, away);
+
+            candidats = genererCandidats(home, away, resHome, resAway, butsHome, butsAway, bttsHome, bttsAway, cotes);
+            candidats.sort((a, b) => (b.finalScore - a.finalScore) || (b.cote - a.cote));
+        }
+
+        html += `<h3>2. Paris calculés à partir des cotes et statistiques</h3>`;
+
+        if (!home || !away) {
+            html += `<p class="aucune-donnee">Impossible de calculer des paris : je n'ai pas trouvé les noms des deux équipes ("The home team is..." / "L'équipe à domicile est..."). Ce moteur fonctionne avec des textes structurés type Datafoot (cotes + statistiques en %), en français ou en anglais.</p>`;
+        } else if (candidats.length === 0) {
+            html += `<p class="aucune-donnee">Aucune cote ou statistique chiffrée exploitable trouvée pour ${home} / ${away}.</p>`;
+        } else {
+            const top3 = candidats.slice(0, 3);
+            top3.forEach((c, i) => {
+                html += `
+                <div class="bet-card ${c.conflit ? 'conflit' : ''}">
+                    <div class="bet-title">Option ${i + 1} : ${c.label} (cote ${fmtCote(c.cote)})</div>
+                    <div class="bet-meta">Score de fiabilité calculé : ${Math.round(c.finalScore)}/100 ${c.nbSources === 1 ? '· une seule source de données, à confirmer' : ''} ${c.conflit ? '· ⚠️ signaux domicile/extérieur contradictoires' : ''}</div>
+                    <p><strong>Détail :</strong> ${c.detail}</p>
+                </div>`;
+            });
+        }
+
+        html += `<div class="avertissement">Ces suggestions sont calculées par des règles mathématiques simples (moyenne et cohérence des % domicile/extérieur des deux équipes, croisés avec les cotes fournies) — ce n'est pas de l'intelligence artificielle et cela ne remplace pas un vrai jugement. Les pourcentages reposent souvent sur très peu de matchs cette saison : un score de 100% peut venir d'un seul match. Les paris sportifs comportent un risque financier et aucune méthode ne garantit un résultat.</div>`;
+
+        const nomMatch = (home && away) ? `${home} vs ${away}` : matchName;
+        const nomCompetition = competition || 'Non spécifiée';
+        let lignesTableau = [];
+
+        if (candidats.length) {
+            const top3 = candidats.slice(0, 3);
+            html += `<h3>3. Tableau des paris</h3>`;
+            html += `<table class="paris-table"><thead><tr>
+                <th>Date</th><th>Match</th><th>Compétition</th><th>Marché</th><th>Pronostic</th><th>Mise</th><th>Cote</th><th></th>
+            </tr></thead><tbody>`;
+            top3.forEach((c, i) => {
+                const { marche, pronostic } = separerMarchePronostic(c.label, home, away);
+                html += `<tr>
+                    <td>${matchDate}</td><td>${nomMatch}</td><td>${nomCompetition}</td><td>${marche}</td><td>${pronostic}</td>
+                    <td class="mise-cell"><input type="text" id="mise-${i}" placeholder="[Mise]"></td>
+                    <td>${fmtCote(c.cote)}</td>
+                    <td style="white-space: nowrap;">
+                        <button class="copie-ligne-btn" onclick="enregistrerPariAnalyseur(${i})" style="flex:none; padding:6px 10px; font-size:12px; background-color: var(--a-success-color); margin-right: 4px;" title="Enregistre ce pari directement dans l'onglet Football de ton tracker">💾 Enregistrer</button>
+                        <button class="secondaire copie-ligne-btn" onclick="copierLigne(${i})" style="flex:none; padding:6px 10px; font-size:12px;">Copier</button>
+                        <span class="enregistrer-confirm" id="enregistre-confirm-${i}">✓ Enregistré dans Football</span>
+                    </td>
+                </tr>`;
+                lignesTableau.push({ marche, pronostic, cote: fmtCote(c.cote) });
+            });
+            html += `</tbody></table>`;
+            html += `<div class="boutons" style="margin-top: 12px;">
+                <button class="secondaire" onclick="copierTableau()" style="flex: none; padding: 10px 18px;">Copier les 3 lignes</button>
+                <span class="copie-confirm" id="copieConfirm">✓ Copié dans le presse-papiers</span>
+            </div>`;
+        }
+
+        window._donneesTableau = { matchDate, nomMatch, nomCompetition, lignesTableau };
+
+        dernierRapportTexte = genererRapportTexte(matchName, matchDate, facteursExternes, candidats, home, away, nomMatch, nomCompetition);
+
+        document.getElementById('resultContent').innerHTML = html;
+        document.getElementById('outputPanel').style.display = 'block';
+    }
+
+    function genererRapportTexte(matchName, matchDate, facteursExternes, candidats, home, away, nomMatch, nomCompetition) {
+        let lignes = [];
+        lignes.push("=".repeat(60));
+        lignes.push(`FICHE DE MATCH : ${matchName} (${matchDate})`);
+        lignes.push("=".repeat(60));
+        lignes.push("");
+        lignes.push("1. FACTEURS EXTERNES & INFIRMERIE");
+        lignes.push("-".repeat(40));
+        if (facteursExternes.length) {
+            facteursExternes.forEach(p => lignes.push(`  - ${p}`));
+        } else {
+            lignes.push("  Aucun facteur externe critique isolé.");
+        }
+        lignes.push("");
+        lignes.push("2. PARIS CALCULÉS");
+        lignes.push("-".repeat(40));
+        if (!home || !away) {
+            lignes.push("  Équipes non détectées (format non reconnu).");
+        } else if (!candidats.length) {
+            lignes.push("  Aucune donnée chiffrée exploitable.");
+        } else {
+            candidats.slice(0, 3).forEach((c, i) => {
+                lignes.push(`  Option ${i + 1} : ${c.label} (cote ${fmtCote(c.cote)}) — fiabilité ${Math.round(c.finalScore)}/100`);
+                lignes.push(`    ${c.detail}`);
+            });
+            lignes.push("");
+            lignes.push("3. TABLEAU DES PARIS");
+            lignes.push("-".repeat(40));
+            lignes.push("Date | Match | Compétition | Marché | Pronostic | [Mise] | Cote");
+            candidats.slice(0, 3).forEach(c => {
+                const { marche, pronostic } = separerMarchePronostic(c.label, home, away);
+                lignes.push(`${matchDate} | ${nomMatch} | ${nomCompetition} | ${marche} | ${pronostic} | [Mise] | ${fmtCote(c.cote)}`);
+            });
+        }
+        lignes.push("");
+        lignes.push("Calcul par règles mathématiques, pas une garantie de résultat. Paris = risque financier.");
+        lignes.push(`Généré le ${new Date().toLocaleString('fr-FR')}`);
+        return lignes.join("\n");
+    }
+
+    // Enregistre directement la ligne i dans le tracker (onglet Football), sans passer par le
+    // presse-papiers. La mise est optionnelle (0 par défaut) et pourra être corrigée dans l'Historique.
+    function enregistrerPariAnalyseur(i) {
+        const donnees = window._donneesTableau;
+        if (!donnees || !donnees.lignesTableau[i]) return;
+        const l = donnees.lignesTableau[i];
+
+        const miseInput = document.getElementById(`mise-${i}`);
+        const miseRaw = miseInput ? miseInput.value.trim().replace(',', '.') : '';
+        const miseVal = miseRaw ? parseFloat(miseRaw) : 0;
+
+        const oddsVal = parseFloat(String(l.cote).replace(',', '.'));
+
+        const newBet = {
+            id: Date.now() + i,
+            date: normalizeDateAnalyseur(donnees.matchDate),
+            type: 'Single',
+            match: donnees.nomMatch,
+            comp: donnees.nomCompetition === 'Non spécifiée' ? '' : donnees.nomCompetition,
+            market: l.marche,
+            prono: l.pronostic,
+            odds: isNaN(oddsVal) ? 1 : oddsVal,
+            stake: isNaN(miseVal) ? 0 : miseVal,
+            status: 'Pending'
+        };
+
+        // L'Analyseur est dédié au football : le pari est toujours enregistré dans cet onglet.
+        currentSport = 'football';
+        state.football.unshift(newBet);
+        saveState();
+
+        const confirmEl = document.getElementById(`enregistre-confirm-${i}`);
+        if (confirmEl) {
+            confirmEl.style.display = 'inline';
+            setTimeout(() => { confirmEl.style.display = 'none'; }, 2500);
+        }
+    }
+
+    function copierLigne(i) {
+        const donnees = window._donneesTableau;
+        if (!donnees || !donnees.lignesTableau[i]) return;
+        const l = donnees.lignesTableau[i];
+        const miseInput = document.getElementById(`mise-${i}`);
+        const mise = (miseInput && miseInput.value.trim()) ? miseInput.value.trim() : '[Mise]';
+        const texte = `${donnees.matchDate} | ${donnees.nomMatch} | ${donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${mise} | ${l.cote}`;
+
+        function afficherConfirmationLigne() {
+            const confirm = document.getElementById('copieConfirm');
+            if (confirm) {
+                confirm.style.display = 'inline';
+                setTimeout(() => { confirm.style.display = 'none'; }, 2000);
+            }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texte).then(afficherConfirmationLigne).catch(() => {
+                fallbackCopie(texte, afficherConfirmationLigne);
+            });
+        } else {
+            fallbackCopie(texte, afficherConfirmationLigne);
+        }
+    }
+
+    function copierTableau() {
+        const donnees = window._donneesTableau;
+        if (!donnees || !donnees.lignesTableau.length) return;
+        let lignes = ["Date | Match | Compétition | Marché | Pronostic | Mise | Cote"];
+        donnees.lignesTableau.forEach((l, i) => {
+            const miseInput = document.getElementById(`mise-${i}`);
+            const mise = (miseInput && miseInput.value.trim()) ? miseInput.value.trim() : '[Mise]';
+            lignes.push(`${donnees.matchDate} | ${donnees.nomMatch} | ${donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${mise} | ${l.cote}`);
+        });
+        const texte = lignes.join("\n");
+
+        function afficherConfirmation() {
+            const confirm = document.getElementById('copieConfirm');
+            if (confirm) {
+                confirm.style.display = 'inline';
+                setTimeout(() => { confirm.style.display = 'none'; }, 2000);
+            }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texte).then(afficherConfirmation).catch(() => {
+                fallbackCopie(texte, afficherConfirmation);
+            });
+        } else {
+            fallbackCopie(texte, afficherConfirmation);
+        }
+    }
+
+    function fallbackCopie(texte, callback) {
+        const zone = document.createElement('textarea');
+        zone.value = texte;
+        zone.style.position = 'fixed';
+        zone.style.opacity = '0';
+        document.body.appendChild(zone);
+        zone.select();
+        try { document.execCommand('copy'); callback(); } catch (e) { alert("Impossible de copier automatiquement, sélectionnez le texte manuellement."); }
+        document.body.removeChild(zone);
+    }
+
+    function exporterTxt() {
+        if (!dernierRapportTexte) { alert("Génère d'abord un rapport."); return; }
+        const blob = new Blob([dernierRapportTexte], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'rapport_match.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ===================== FIN ANALYSEUR =====================
+
+    function switchView(view) {
+      const trackerBtn = document.getElementById('btnViewTracker');
+      const analyzerBtn = document.getElementById('btnViewAnalyzer');
+      const trackerContent = document.getElementById('trackerViewContent');
+      const analyzerContent = document.getElementById('analyzerViewContent');
+
+      const activeClass = "px-4 py-2 rounded-xl transition bg-blue-600 text-white shadow-sm font-bold text-sm flex items-center gap-2";
+      const inactiveClass = "px-4 py-2 rounded-xl transition text-slate-600 hover:text-slate-900 font-bold text-sm flex items-center gap-2";
+
+      if (view === 'analyzer') {
+        trackerContent.classList.add('hidden');
+        analyzerContent.classList.remove('hidden');
+        trackerBtn.className = inactiveClass;
+        analyzerBtn.className = activeClass;
+      } else {
+        trackerContent.classList.remove('hidden');
+        analyzerContent.classList.add('hidden');
+        trackerBtn.className = activeClass;
+        analyzerBtn.className = inactiveClass;
       }
     }
 
