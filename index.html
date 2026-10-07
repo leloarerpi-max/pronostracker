@@ -106,6 +106,10 @@
       width: 70px; background-color: #0f172a; color: var(--a-text-color);
       border: 1px solid var(--a-border-color); border-radius: 4px; padding: 4px 6px; font-size: 13px;
     }
+    .analyzer-panel table.paris-table td.edit-cell input, .analyzer-panel table.paris-table td.edit-cell select {
+      background-color: #0f172a; color: var(--a-text-color);
+      border: 1px solid var(--a-border-color); border-radius: 4px; padding: 4px 6px; font-size: 13px; margin-bottom: 0;
+    }
     .analyzer-panel .copie-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
     .analyzer-panel .enregistrer-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
   </style>
@@ -969,35 +973,106 @@
         return `${dir} ${val} but(s)`;
     }
 
-    function extraireCompetition(texte) {
-        let m = texte.match(/Comp[ée]tition\s*:\s*([^.]+)\./i) || texte.match(/League\s*:\s*([^.]+)\./i);
-        if (m) return m[1].trim();
+    // Compétitions connues (les coupes européennes d'abord, car un texte sur un match de C1
+    // peut aussi citer la Ligue 1 pour la forme domestique d'une équipe).
+    const LIGUES_CONNUES = [
+        [/ligue\s+des\s+champions|champions\s+league/i, 'Ligue des Champions'],
+        [/europa\s+conf[ée]rence\s+league|conf[ée]rence\s+league|ligue\s+conf[ée]rence|ligue\s+europa\s+conf[ée]rence/i, 'Ligue Conférence'],
+        [/europa\s+league|ligue\s+europa/i, 'Europa League'],
+        [/premier\s+league/i, 'Premier League'],
+        [/la\s?liga|primera\s+divisi[oó]n/i, 'La Liga'],
+        [/serie\s+a\b/i, 'Serie A'],
+        [/bundesliga/i, 'Bundesliga'],
+        [/ligue\s+1\b/i, 'Ligue 1'],
+        [/ligue\s+2\b/i, 'Ligue 2'],
+        [/eredivisie/i, 'Eredivisie'],
+        [/primeira\s+liga|liga\s+portugal/i, 'Primeira Liga'],
+        [/jupiler\s+pro\s+league/i, 'Jupiler Pro League'],
+        [/s[üu]per\s+lig/i, 'Süper Lig'],
+    ];
 
-        const ligues = [
-            'Ligue 1', 'Ligue 2', 'Serie A', 'La Liga', 'LaLiga', 'Premier League',
-            'Bundesliga', 'Champions League', 'Ligue des champions', 'Europa League',
-            'Eredivisie', 'Primeira Liga', 'Jupiler Pro League', 'Süper Lig',
-        ];
-        for (const ligue of ligues) {
-            if (texte.toLowerCase().includes(ligue.toLowerCase())) return ligue;
-        }
-        return null;
+    // Si la compétition existe déjà dans le tracker (à la casse près), on reprend EXACTEMENT
+    // l'orthographe déjà utilisée, pour ne pas créer de doublons dans les stats par championnat.
+    function alignerSurCompetitionExistante(nom) {
+        if (!nom) return nom;
+        const existantes = Array.from(new Set((state.football || []).map(b => (b.comp || '').trim()).filter(Boolean)));
+        const trouvee = existantes.find(c => c.toLowerCase() === nom.toLowerCase());
+        return trouvee || nom;
     }
 
+    function normaliserCompetition(brut) {
+        for (const [re, nom] of LIGUES_CONNUES) {
+            if (re.test(brut)) return alignerSurCompetitionExistante(nom);
+        }
+        return alignerSurCompetitionExistante(brut.trim());
+    }
+
+    function extraireCompetition(texte) {
+        // 1) Compétition explicitement étiquetée ("Compétition : ...", "League: ...", "Championnat : ...")
+        let m = texte.match(/(?:Comp[ée]tition|Championnat|League|Tournament|Tournoi)\s*:\s*([^.\n|]+)/i);
+        if (m && m[1].trim()) return normaliserCompetition(m[1].trim());
+
+        // 2) Compétition connue citée dans le texte
+        for (const [re, nom] of LIGUES_CONNUES) {
+            if (re.test(texte)) return alignerSurCompetitionExistante(nom);
+        }
+
+        // 3) Compétition déjà utilisée dans le tracker (ex: une compétition personnalisée)
+        const existantes = Array.from(new Set((state.football || []).map(b => (b.comp || '').trim()).filter(c => c.length >= 4)));
+        existantes.sort((a, b) => b.length - a.length);
+        const low = texte.toLowerCase();
+        const trouvee = existantes.find(c => low.includes(c.toLowerCase()));
+        return trouvee || null;
+    }
+
+    // Renvoie le nom du marché tel qu'il existe dans la liste déroulante du tracker
+    // (footballMarkets : 1N2, BTTS, Over/Under, Buteur, Mi-Temps, Double Chance, + types ajoutés).
+    function marcheDisponible(nom) {
+        const trouve = footballMarkets.find(x => x.toLowerCase() === nom.toLowerCase());
+        if (trouve) return trouve;
+        const autre = footballMarkets.find(x => x.toLowerCase() === 'autre');
+        return autre || nom;
+    }
+
+    // Traduit un candidat de l'Analyseur en (marché du tracker, pronostic au format du tracker).
+    // Les pronostics reprennent les mêmes libellés que les suggestions du formulaire d'ajout :
+    //   1N2        -> "Équipe A" / "Match nul" / "Équipe B"
+    //   Mi-Temps   -> "Victoire Équipe A (MT)" / "Nul (MT)" / "Victoire Équipe B (MT)"
+    //   Over/Under -> "Plus de 2.5 buts" / "Moins de 2.5 buts"
+    //   BTTS       -> "Les deux équipes marquent" / "Une équipe ne marque pas"
     function separerMarchePronostic(label, home, away) {
-        if (label === 'Match nul à la mi-temps') return { marche: 'Résultat 1ère mi-temps', pronostic: 'Match nul' };
-        if (label === 'Match nul au score final') return { marche: 'Résultat du match', pronostic: 'Match nul' };
-        if (label === `${home} gagne la 1ère mi-temps`) return { marche: 'Résultat 1ère mi-temps', pronostic: `${home} gagne` };
-        if (label === `${away} gagne la 1ère mi-temps`) return { marche: 'Résultat 1ère mi-temps', pronostic: `${away} gagne` };
-        if (label === `${home} gagne le match`) return { marche: 'Résultat du match', pronostic: `${home} gagne` };
-        if (label === `${away} gagne le match`) return { marche: 'Résultat du match', pronostic: `${away} gagne` };
+        if (label === 'Match nul à la mi-temps') return { marche: marcheDisponible('Mi-Temps'), pronostic: 'Nul (MT)' };
+        if (label === 'Match nul au score final') return { marche: marcheDisponible('1N2'), pronostic: 'Match nul' };
+        if (label === `${home} gagne la 1ère mi-temps`) return { marche: marcheDisponible('Mi-Temps'), pronostic: `Victoire ${home} (MT)` };
+        if (label === `${away} gagne la 1ère mi-temps`) return { marche: marcheDisponible('Mi-Temps'), pronostic: `Victoire ${away} (MT)` };
+        if (label === `${home} gagne le match`) return { marche: marcheDisponible('1N2'), pronostic: home };
+        if (label === `${away} gagne le match`) return { marche: marcheDisponible('1N2'), pronostic: away };
         let m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) en 1ère mi-temps$/);
-        if (m) return { marche: 'Total buts 1ère mi-temps', pronostic: `${m[1]} ${m[2]} but(s)` };
+        if (m) return { marche: marcheDisponible('Over/Under'), pronostic: `${m[1]} ${m[2].replace(',', '.')} buts en 1ère MT` };
         m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) sur le match complet$/);
-        if (m) return { marche: 'Total buts du match', pronostic: `${m[1]} ${m[2]} but(s)` };
-        if (label.includes('BTTS oui')) return { marche: 'Les deux équipes marquent', pronostic: 'Oui' };
-        if (label.includes('BTTS non')) return { marche: 'Les deux équipes marquent', pronostic: 'Non' };
-        return { marche: label, pronostic: '' };
+        if (m) return { marche: marcheDisponible('Over/Under'), pronostic: `${m[1]} ${m[2].replace(',', '.')} buts` };
+        if (label.includes('BTTS oui')) return { marche: marcheDisponible('BTTS'), pronostic: 'Les deux équipes marquent' };
+        if (label.includes('BTTS non')) return { marche: marcheDisponible('BTTS'), pronostic: 'Une équipe ne marque pas' };
+        return { marche: marcheDisponible('Autre'), pronostic: label };
+    }
+
+    // Lit les valeurs (éventuellement corrigées à la main) d'une ligne du tableau de l'Analyseur.
+    function lireLigneAnalyseur(i) {
+        const donnees = window._donneesTableau;
+        if (!donnees || !donnees.lignesTableau[i]) return null;
+        const l = donnees.lignesTableau[i];
+        const val = (id, repli) => {
+            const el = document.getElementById(`${id}-${i}`);
+            return el ? el.value.trim() : repli;
+        };
+        const mise = val('mise', '');
+        return {
+            comp: val('comp', donnees.nomCompetition === 'Non spécifiée' ? '' : donnees.nomCompetition),
+            marche: val('marche', l.marche),
+            pronostic: val('prono', l.pronostic),
+            cote: l.cote,
+            mise: mise
+        };
     }
 
     function extraireEquipes(texte) {
@@ -1354,8 +1429,13 @@
             </tr></thead><tbody>`;
             top3.forEach((c, i) => {
                 const { marche, pronostic } = separerMarchePronostic(c.label, home, away);
+                const listeMarches = footballMarkets.includes(marche) ? footballMarkets : [...footballMarkets, marche];
+                const marcheOptions = listeMarches.map(mk => `<option value="${escAttr(mk)}" ${mk === marche ? 'selected' : ''}>${escAttr(mk)}</option>`).join('');
                 html += `<tr>
-                    <td>${matchDate}</td><td>${nomMatch}</td><td>${nomCompetition}</td><td>${marche}</td><td>${pronostic}</td>
+                    <td>${matchDate}</td><td>${nomMatch}</td>
+                    <td class="edit-cell"><input type="text" id="comp-${i}" list="compDatalist" value="${escAttr(competition || '')}" placeholder="Compétition" style="width:130px;"></td>
+                    <td class="edit-cell"><select id="marche-${i}">${marcheOptions}</select></td>
+                    <td class="edit-cell"><input type="text" id="prono-${i}" value="${escAttr(pronostic)}" style="width:190px;"></td>
                     <td class="mise-cell"><input type="text" id="mise-${i}" placeholder="[Mise]"></td>
                     <td>${fmtCote(c.cote)}</td>
                     <td style="white-space: nowrap;">
@@ -1425,11 +1505,10 @@
     // presse-papiers. La mise est optionnelle (0 par défaut) et pourra être corrigée dans l'Historique.
     function enregistrerPariAnalyseur(i) {
         const donnees = window._donneesTableau;
-        if (!donnees || !donnees.lignesTableau[i]) return;
-        const l = donnees.lignesTableau[i];
+        const l = lireLigneAnalyseur(i);
+        if (!donnees || !l) return;
 
-        const miseInput = document.getElementById(`mise-${i}`);
-        const miseRaw = miseInput ? miseInput.value.trim().replace(',', '.') : '';
+        const miseRaw = l.mise.replace(',', '.');
         const miseVal = miseRaw ? parseFloat(miseRaw) : 0;
 
         const oddsVal = parseFloat(String(l.cote).replace(',', '.'));
@@ -1439,7 +1518,7 @@
             date: normalizeDateAnalyseur(donnees.matchDate),
             type: 'Single',
             match: donnees.nomMatch,
-            comp: donnees.nomCompetition === 'Non spécifiée' ? '' : donnees.nomCompetition,
+            comp: l.comp,
             market: l.marche,
             prono: l.pronostic,
             odds: isNaN(oddsVal) ? 1 : oddsVal,
@@ -1461,11 +1540,9 @@
 
     function copierLigne(i) {
         const donnees = window._donneesTableau;
-        if (!donnees || !donnees.lignesTableau[i]) return;
-        const l = donnees.lignesTableau[i];
-        const miseInput = document.getElementById(`mise-${i}`);
-        const mise = (miseInput && miseInput.value.trim()) ? miseInput.value.trim() : '[Mise]';
-        const texte = `${donnees.matchDate} | ${donnees.nomMatch} | ${donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${mise} | ${l.cote}`;
+        const l = lireLigneAnalyseur(i);
+        if (!donnees || !l) return;
+        const texte = `${donnees.matchDate} | ${donnees.nomMatch} | ${l.comp || donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${l.mise || '[Mise]'} | ${l.cote}`;
 
         function afficherConfirmationLigne() {
             const confirm = document.getElementById('copieConfirm');
@@ -1488,10 +1565,10 @@
         const donnees = window._donneesTableau;
         if (!donnees || !donnees.lignesTableau.length) return;
         let lignes = ["Date | Match | Compétition | Marché | Pronostic | Mise | Cote"];
-        donnees.lignesTableau.forEach((l, i) => {
-            const miseInput = document.getElementById(`mise-${i}`);
-            const mise = (miseInput && miseInput.value.trim()) ? miseInput.value.trim() : '[Mise]';
-            lignes.push(`${donnees.matchDate} | ${donnees.nomMatch} | ${donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${mise} | ${l.cote}`);
+        donnees.lignesTableau.forEach((_, i) => {
+            const l = lireLigneAnalyseur(i);
+            if (!l) return;
+            lignes.push(`${donnees.matchDate} | ${donnees.nomMatch} | ${l.comp || donnees.nomCompetition} | ${l.marche} | ${l.pronostic} | ${l.mise || '[Mise]'} | ${l.cote}`);
         });
         const texte = lignes.join("\n");
 
