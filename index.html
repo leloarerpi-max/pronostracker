@@ -963,6 +963,13 @@
 
     function echapper(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
     function fmt(v) { return (v === null || v === undefined) ? '—' : v + '%'; }
+    // Réduction appliquée aux cotes du tableau des paris (4,88 %), pour retrouver la cote réellement
+    // obtenue. La cote ajustée est arrondie à 2 décimales : ce qui est affiché est ce qui est enregistré.
+    const REDUCTION_COTE_PCT = 4.88;
+    function coteAjustee(v) {
+        if (v === null || v === undefined || isNaN(v)) return v;
+        return Math.round(v * (1 - REDUCTION_COTE_PCT / 100) * 100) / 100;
+    }
     function fmtCote(v) { return (v === null || v === undefined) ? '—' : v.toFixed(2).replace('.', ','); }
 
     function directionLabel(cle) {
@@ -1437,14 +1444,14 @@
                     <td class="edit-cell"><select id="marche-${i}">${marcheOptions}</select></td>
                     <td class="edit-cell"><input type="text" id="prono-${i}" value="${escAttr(pronostic)}" style="width:190px;"></td>
                     <td class="mise-cell"><input type="text" id="mise-${i}" placeholder="[Mise]"></td>
-                    <td>${fmtCote(c.cote)}</td>
+                    <td title="Cote d'origine ${fmtCote(c.cote)} − ${String(REDUCTION_COTE_PCT).replace('.', ',')} %">${fmtCote(coteAjustee(c.cote))}</td>
                     <td style="white-space: nowrap;">
                         <button class="copie-ligne-btn" onclick="enregistrerPariAnalyseur(${i})" style="flex:none; padding:6px 10px; font-size:12px; background-color: var(--a-success-color); margin-right: 4px;" title="Enregistre ce pari directement dans l'onglet Football de ton tracker">💾 Enregistrer</button>
                         <button class="secondaire copie-ligne-btn" onclick="copierLigne(${i})" style="flex:none; padding:6px 10px; font-size:12px;">Copier</button>
                         <span class="enregistrer-confirm" id="enregistre-confirm-${i}">✓ Enregistré dans Football</span>
                     </td>
                 </tr>`;
-                lignesTableau.push({ marche, pronostic, cote: fmtCote(c.cote) });
+                lignesTableau.push({ marche, pronostic, cote: fmtCote(coteAjustee(c.cote)) });
             });
             html += `</tbody></table>`;
             html += `<div class="boutons" style="margin-top: 12px;">
@@ -1492,7 +1499,7 @@
             lignes.push("Date | Match | Compétition | Marché | Pronostic | [Mise] | Cote");
             candidats.slice(0, 3).forEach(c => {
                 const { marche, pronostic } = separerMarchePronostic(c.label, home, away);
-                lignes.push(`${matchDate} | ${nomMatch} | ${nomCompetition} | ${marche} | ${pronostic} | [Mise] | ${fmtCote(c.cote)}`);
+                lignes.push(`${matchDate} | ${nomMatch} | ${nomCompetition} | ${marche} | ${pronostic} | [Mise] | ${fmtCote(coteAjustee(c.cote))}`);
             });
         }
         lignes.push("");
