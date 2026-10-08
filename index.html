@@ -1538,6 +1538,11 @@
         state.football.unshift(newBet);
         saveState();
 
+        // Le pari est enregistré : on vide le texte brut collé, prêt pour la prochaine analyse.
+        // Le rapport et le tableau restent affichés (ils ne dépendent plus de la zone de texte).
+        const rawInputEl = document.getElementById('rawInput');
+        if (rawInputEl) rawInputEl.value = '';
+
         const confirmEl = document.getElementById(`enregistre-confirm-${i}`);
         if (confirmEl) {
             confirmEl.style.display = 'inline';
