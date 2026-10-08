@@ -742,6 +742,24 @@
     if (!state.combos) state.combos = {};
     if (!Array.isArray(state.combos.football)) state.combos.football = [];
     if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
+    // Toute mise à 0 (ou absente) passe à 1 € : paris simples ET combinés, football ET tennis.
+    // Renvoie le nombre de mises corrigées.
+    function corrigerMisesNulles() {
+      let n = 0;
+      ['football', 'tennis'].forEach(sp => {
+        (state[sp] || []).forEach(b => {
+          if (!(parseFloat(b.stake) > 0)) { b.stake = 1; n++; }
+        });
+        ((state.combos && state.combos[sp]) || []).forEach(c => {
+          if (!(parseFloat(c.stake) > 0)) { c.stake = 1; n++; }
+        });
+      });
+      return n;
+    }
+    if (corrigerMisesNulles() > 0) {
+      try { localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state)); } catch (e) {}
+    }
+
     // Sélection en cours (cases cochées dans l'Historique) en vue de créer un combiné.
     let selectedBetIds = new Set();
     // Affichage de la liste "Mes Combinés" : pagination + état plié/déplié par combiné.
@@ -1055,12 +1073,26 @@
         if (label === `${home} gagne le match`) return { marche: marcheDisponible('1N2'), pronostic: home };
         if (label === `${away} gagne le match`) return { marche: marcheDisponible('1N2'), pronostic: away };
         let m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) en 1ère mi-temps$/);
-        if (m) return { marche: marcheDisponible('Over/Under'), pronostic: `${m[1]} ${m[2].replace(',', '.')} buts en 1ère MT` };
+        if (m) return { marche: marcheDisponible('Mi-Temps'), pronostic: `${m[1]} ${m[2].replace(',', '.')} buts en 1ère MT` };
         m = label.match(/^(Plus de|Moins de) ([\d,]+) but\(s\) sur le match complet$/);
         if (m) return { marche: marcheDisponible('Over/Under'), pronostic: `${m[1]} ${m[2].replace(',', '.')} buts` };
         if (label.includes('BTTS oui')) return { marche: marcheDisponible('BTTS'), pronostic: 'Les deux équipes marquent' };
         if (label.includes('BTTS non')) return { marche: marcheDisponible('BTTS'), pronostic: 'Une équipe ne marque pas' };
         return { marche: marcheDisponible('Autre'), pronostic: label };
+    }
+
+    // Règle : dès que le pronostic contient "MT" (mi-temps), le marché est forcément Mi-Temps.
+    function marcheSelonPronostic(marche, pronostic) {
+        return /\bMT\b/i.test(pronostic || '') ? marcheDisponible('Mi-Temps') : marche;
+    }
+
+    // Appelée quand on modifie le pronostic dans le tableau : bascule le marché sur Mi-Temps si besoin.
+    function majMarcheDepuisPronostic(i) {
+        const prono = document.getElementById(`prono-${i}`);
+        const sel = document.getElementById(`marche-${i}`);
+        if (!prono || !sel) return;
+        const cible = marcheSelonPronostic(sel.value, prono.value);
+        if (cible !== sel.value && Array.from(sel.options).some(o => o.value === cible)) sel.value = cible;
     }
 
     // Lit les valeurs (éventuellement corrigées à la main) d'une ligne du tableau de l'Analyseur.
@@ -1072,10 +1104,11 @@
             const el = document.getElementById(`${id}-${i}`);
             return el ? el.value.trim() : repli;
         };
-        const mise = val('mise', '');
+        let mise = val('mise', '');
+        if (!(parseFloat(mise.replace(',', '.')) > 0)) mise = '1';
         return {
             comp: val('comp', donnees.nomCompetition === 'Non spécifiée' ? '' : donnees.nomCompetition),
-            marche: val('marche', l.marche),
+            marche: marcheSelonPronostic(val('marche', l.marche), val('prono', l.pronostic)),
             pronostic: val('prono', l.pronostic),
             cote: l.cote,
             mise: mise
@@ -1442,8 +1475,8 @@
                     <td>${matchDate}</td><td>${nomMatch}</td>
                     <td class="edit-cell"><input type="text" id="comp-${i}" list="compDatalist" value="${escAttr(competition || '')}" placeholder="Compétition" style="width:130px;"></td>
                     <td class="edit-cell"><select id="marche-${i}">${marcheOptions}</select></td>
-                    <td class="edit-cell"><input type="text" id="prono-${i}" value="${escAttr(pronostic)}" style="width:190px;"></td>
-                    <td class="mise-cell"><input type="text" id="mise-${i}" placeholder="[Mise]"></td>
+                    <td class="edit-cell"><input type="text" id="prono-${i}" value="${escAttr(pronostic)}" oninput="majMarcheDepuisPronostic(${i})" style="width:190px;"></td>
+                    <td class="mise-cell"><input type="text" id="mise-${i}" value="1" placeholder="1"></td>
                     <td title="Cote d'origine ${fmtCote(c.cote)} − ${String(REDUCTION_COTE_PCT).replace('.', ',')} %">${fmtCote(coteAjustee(c.cote))}</td>
                     <td style="white-space: nowrap;">
                         <button class="copie-ligne-btn" onclick="enregistrerPariAnalyseur(${i})" style="flex:none; padding:6px 10px; font-size:12px; background-color: var(--a-success-color); margin-right: 4px;" title="Enregistre ce pari directement dans l'onglet Football de ton tracker">💾 Enregistrer</button>
@@ -1499,7 +1532,7 @@
             lignes.push("Date | Match | Compétition | Marché | Pronostic | [Mise] | Cote");
             candidats.slice(0, 3).forEach(c => {
                 const { marche, pronostic } = separerMarchePronostic(c.label, home, away);
-                lignes.push(`${matchDate} | ${nomMatch} | ${nomCompetition} | ${marche} | ${pronostic} | [Mise] | ${fmtCote(coteAjustee(c.cote))}`);
+                lignes.push(`${matchDate} | ${nomMatch} | ${nomCompetition} | ${marche} | ${pronostic} | 1 | ${fmtCote(coteAjustee(c.cote))}`);
             });
         }
         lignes.push("");
@@ -1516,7 +1549,7 @@
         if (!donnees || !l) return;
 
         const miseRaw = l.mise.replace(',', '.');
-        const miseVal = miseRaw ? parseFloat(miseRaw) : 0;
+        const miseVal = parseFloat(miseRaw) > 0 ? parseFloat(miseRaw) : 1;
 
         const oddsVal = parseFloat(String(l.cote).replace(',', '.'));
 
@@ -1529,7 +1562,7 @@
             market: l.marche,
             prono: l.pronostic,
             odds: isNaN(oddsVal) ? 1 : oddsVal,
-            stake: isNaN(miseVal) ? 0 : miseVal,
+            stake: miseVal,
             status: 'Pending'
         };
 
@@ -1710,6 +1743,7 @@
           if (!state.combos) state.combos = {};
           if (!Array.isArray(state.combos.football)) state.combos.football = [];
           if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
+          corrigerMisesNulles();
 
           ['football', 'tennis'].forEach(sp => {
             if (!state[sp]) state[sp] = [];
