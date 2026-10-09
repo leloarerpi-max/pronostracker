@@ -334,6 +334,7 @@
       <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
         <i class="fa-solid fa-layer-group text-violet-600"></i> Mes Combinés
       </h3>
+      <input type="search" id="comboSearchInput" oninput="setComboSearch(this.value)" placeholder="Rechercher un match, une équipe ou un pronostic…" class="input-field w-full text-xs">
       <div id="combosListContainer" class="space-y-3"></div>
     </div>
 
@@ -756,14 +757,62 @@
       });
       return n;
     }
-    if (corrigerMisesNulles() > 0) {
-      try { localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state)); } catch (e) {}
+    // Remet d'équerre les combinés pour qu'aucun ne disparaisse de "Mes Combinés" :
+    //  - un pari marqué comme faisant partie d'un combiné (comboId) dont le combiné n'existe plus
+    //    est regroupé avec ses voisins pour recréer le combiné (mise 1 € si elle est inconnue) ;
+    //    s'il reste seul, il redevient un pari simple ;
+    //  - les sélections d'un combiné retrouvent leur lien (comboId) ;
+    //  - les identifiants sont comparés sans tenir compte du type (nombre ou texte).
+    // Renvoie le nombre de réparations.
+    function repareCombines() {
+      let n = 0;
+      ['football', 'tennis'].forEach(sp => {
+        const bets = state[sp] || [];
+        if (!state.combos) state.combos = {};
+        if (!Array.isArray(state.combos[sp])) state.combos[sp] = [];
+        const combos = state.combos[sp];
+        const betById = id => bets.find(b => String(b.id) === String(id));
+
+        combos.forEach(c => {
+          if (!Array.isArray(c.legIds)) { c.legIds = []; n++; }
+          c.legIds.forEach(id => {
+            const b = betById(id);
+            if (b && String(b.comboId) !== String(c.id)) { b.comboId = c.id; n++; }
+          });
+        });
+
+        const orphans = {};
+        bets.forEach(b => {
+          if (b.comboId === undefined || b.comboId === null || b.comboId === '') return;
+          if (combos.some(c => String(c.id) === String(b.comboId))) return;
+          (orphans[b.comboId] = orphans[b.comboId] || []).push(b);
+        });
+        Object.keys(orphans).forEach(cid => {
+          const legs = orphans[cid];
+          if (legs.length >= 2) {
+            const stake = parseFloat(legs[0].stake) > 0 ? parseFloat(legs[0].stake) : 1;
+            combos.push({ id: legs[0].comboId, stake: stake, legIds: legs.map(b => b.id), createdAt: new Date().toISOString() });
+          } else {
+            delete legs[0].comboId;
+          }
+          n++;
+        });
+      });
+      return n;
+    }
+
+    {
+      const fixes = corrigerMisesNulles() + repareCombines();
+      if (fixes > 0) {
+        try { localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state)); } catch (e) {}
+      }
     }
 
     // Sélection en cours (cases cochées dans l'Historique) en vue de créer un combiné.
     let selectedBetIds = new Set();
     // Affichage de la liste "Mes Combinés" : pagination + état plié/déplié par combiné.
-    let visibleCombosCount = 5;
+    const COMBOS_PAGE = 15;
+    let visibleCombosCount = COMBOS_PAGE;
     let comboOverrides = {}; // { [comboId]: true|false } — ne contient que les combinés dépliés/repliés manuellement.
     
     let categoryChartInstances = {}; // instances Chart.js par catégorie (accordéons ouverts uniquement)
@@ -1692,7 +1741,7 @@
       editingBetId = null;
       currentTypeFilter = 'ALL';
       selectedBetIds.clear();
-      visibleCombosCount = 5;
+      visibleCombosCount = COMBOS_PAGE;
       comboOverrides = {};
       applyTheme();
       updateCompFilterModeButtons();
@@ -1744,6 +1793,7 @@
           if (!Array.isArray(state.combos.football)) state.combos.football = [];
           if (!Array.isArray(state.combos.tennis)) state.combos.tennis = [];
           corrigerMisesNulles();
+          repareCombines();
 
           ['football', 'tennis'].forEach(sp => {
             if (!state[sp]) state[sp] = [];
@@ -2741,7 +2791,7 @@
     // Retrouve les paris (legs) d'un combiné dans la liste actuelle du sport.
     function comboLegs(sport, combo) {
       const list = state[sport] || [];
-      return combo.legIds.map(id => list.find(b => b.id === id)).filter(Boolean);
+      return (combo.legIds || []).map(id => list.find(b => String(b.id) === String(id))).filter(Boolean);
     }
 
     function comboOdds(sport, combo) {
@@ -2901,6 +2951,17 @@
 
     // --- Affichage compact des combinés : une ligne par combiné, détail au clic ---
     let comboFilter = 'ALL'; // ALL | Pending | Won | Lost
+    let comboSearch = '';    // texte recherché (équipe, match, pronostic, compétition)
+
+    function normTexte(t) {
+      return (t || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function setComboSearch(v) {
+      comboSearch = v || '';
+      visibleCombosCount = COMBOS_PAGE;
+      renderCombos();
+    }
 
     // Par défaut tout est replié : la liste reste courte et lisible. Un clic déplie le détail.
     function isComboExpanded(comboId) {
@@ -2919,12 +2980,17 @@
 
     function setComboFilter(f) {
       comboFilter = f;
-      visibleCombosCount = 5;
+      visibleCombosCount = COMBOS_PAGE;
       renderCombos();
     }
 
     function loadMoreCombos() {
-      visibleCombosCount += 5;
+      visibleCombosCount += COMBOS_PAGE;
+      renderCombos();
+    }
+
+    function showAllCombos() {
+      visibleCombosCount = Infinity;
       renderCombos();
     }
 
@@ -2944,13 +3010,19 @@
       }
 
       // Statut / cote / gain calculés une seule fois par combiné.
-      const rows = combos.slice().reverse().map(c => ({
-        combo: c,
-        legs: comboLegs(currentSport, c),
-        status: comboStatus(currentSport, c),
-        odds: comboOdds(currentSport, c),
-        profit: comboProfit(currentSport, c)
-      }));
+      const rows = combos.map(c => {
+        const legs = comboLegs(currentSport, c);
+        // Date du combiné = date de son match le plus tardif (ISO AAAA-MM-JJ, donc comparable en texte).
+        const date = legs.reduce((mx, l) => (l.date && l.date > mx ? l.date : mx), '');
+        return {
+          combo: c,
+          legs: legs,
+          date: date,
+          status: comboStatus(currentSport, c),
+          odds: comboOdds(currentSport, c),
+          profit: comboProfit(currentSport, c)
+        };
+      }).sort((a, b) => (b.date.localeCompare(a.date)) || (Number(b.combo.id) - Number(a.combo.id)));
 
       const count = { Pending: 0, Won: 0, Lost: 0 };
       let settledStake = 0, totalProfit = 0;
@@ -2961,7 +3033,13 @@
       const roi = settledStake > 0 ? (totalProfit / settledStake) * 100 : null;
       const profitCls = totalProfit > 0 ? 'text-emerald-600' : totalProfit < 0 ? 'text-rose-600' : 'text-slate-500';
 
-      const filtered = comboFilter === 'ALL' ? rows : rows.filter(r => r.status === comboFilter);
+      const termes = normTexte(comboSearch).split(/\s+/).filter(Boolean);
+      const matchRecherche = r => {
+        if (!termes.length) return true;
+        const texte = normTexte(r.legs.map(l => `${l.match} ${l.prono} ${l.comp} ${l.market}`).join(' '));
+        return termes.every(t => texte.includes(t));
+      };
+      const filtered = rows.filter(r => (comboFilter === 'ALL' || r.status === comboFilter) && matchRecherche(r));
       const visible = filtered.slice(0, visibleCombosCount);
 
       const pill = (key, label, n) => {
@@ -2983,7 +3061,7 @@
         </div>`;
 
       if (visible.length === 0) {
-        html += `<p class="text-xs text-slate-400 italic pt-2">Aucun combiné dans cette catégorie.</p>`;
+        html += `<p class="text-xs text-slate-400 italic pt-2">${termes.length ? 'Aucun combiné ne correspond à cette recherche.' : 'Aucun combiné dans cette catégorie.'}</p>`;
       }
 
       const barColor = { Pending: 'border-l-amber-400', Won: 'border-l-emerald-500', Lost: 'border-l-rose-500' };
@@ -2991,12 +3069,13 @@
 
       html += `<div class="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">`;
       html += visible.map(r => {
+       try {
         const { combo, legs, status, odds, profit } = r;
         const expanded = isComboExpanded(combo.id);
         const potentiel = (combo.stake || 0) * odds;
 
         // Résumé : "Lyon · PSG · Nice" (les noms trop longs sont tronqués par le CSS)
-        const resume = legs.map(l => escAttr(l.match || '?')).join('  ·  ');
+        const resume = legs.length ? legs.map(l => escAttr(l.match || '?')).join('  ·  ') : '⚠️ Sélections introuvables (paris supprimés ?)';
         const dots = legs.map(l => `<span class="inline-block w-1.5 h-1.5 rounded-full ${dotColor[l.status] || dotColor.Pending}"></span>`).join('');
 
         let gain;
@@ -3010,7 +3089,7 @@
               <div class="text-xs font-bold text-slate-800 truncate">${resume}</div>
               <div class="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 font-semibold">
                 <span class="inline-flex items-center gap-0.5">${dots}</span>
-                <span>${legs.length} sél.</span>
+                <span>${legs.length} sél.</span>${r.date ? `<span>· ${r.date.split('-').reverse().join('/')}</span>` : ''}
               </div>
             </div>
             <div class="text-right shrink-0 leading-tight">
@@ -3037,6 +3116,9 @@
               <button onclick="deleteComboWithLegs(${combo.id})" class="text-[11px] font-bold text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash-can mr-1"></i>Supprimer tout</button>
             </div>
           </div>`;
+       } catch (e) {
+        return `<div class="px-3 py-2.5 text-xs text-rose-600 border-l-4 border-l-rose-500">⚠️ Combiné #${r.combo.id} illisible (${escAttr(e.message)})</div>`;
+       }
       }).join('');
       html += `</div>`;
 
@@ -3045,7 +3127,7 @@
           <button onclick="toggleAllCombos(true)" class="text-violet-600 hover:text-violet-800">Tout déplier</button>
           <button onclick="toggleAllCombos(false)" class="text-slate-500 hover:text-slate-700">Tout replier</button>
         </span>
-        ${filtered.length > visibleCombosCount ? `<button onclick="loadMoreCombos()" class="text-violet-600 hover:text-violet-800">Voir plus (+${Math.min(5, filtered.length - visibleCombosCount)})</button>` : ''}
+        ${filtered.length > visibleCombosCount ? `<span class="flex gap-3"><button onclick="loadMoreCombos()" class="text-violet-600 hover:text-violet-800">Voir plus (+${Math.min(COMBOS_PAGE, filtered.length - visibleCombosCount)})</button><button onclick="showAllCombos()" class="text-slate-500 hover:text-slate-700">Tout afficher (${filtered.length})</button></span>` : `<span class="text-slate-400 font-semibold">${filtered.length} affiché(s)</span>`}
       </div>`;
 
       container.innerHTML = html;
