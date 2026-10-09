@@ -112,14 +112,107 @@
     }
     .analyzer-panel .copie-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
     .analyzer-panel .enregistrer-confirm { color: var(--a-success-color); font-size: 13px; margin-left: 10px; display: none; }
+
+    /* ===== Ambiances (fonds saisonniers) ===== */
+    body { background-attachment: fixed; background-size: cover; transition: background-color .4s ease; }
+    #ambianceCanvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    #appRoot { position: relative; z-index: 1; }
+
+    body[data-ambiance="automne"] {
+      background:
+        radial-gradient(1100px 520px at 88% -8%, rgba(251,146,60,.38), transparent 62%),
+        radial-gradient(900px 520px at -5% 105%, rgba(180,83,9,.20), transparent 60%),
+        linear-gradient(180deg, #fff4e5 0%, #fde6c4 55%, #f9d9a8 100%);
+    }
+    body[data-ambiance="hiver"] {
+      background:
+        radial-gradient(900px 480px at 15% -10%, rgba(255,255,255,.95), transparent 62%),
+        radial-gradient(1000px 520px at 100% 100%, rgba(129,140,248,.25), transparent 60%),
+        linear-gradient(180deg, #e8f1ff 0%, #d3e4fb 55%, #c3d7f5 100%);
+    }
+    body[data-ambiance="printemps"] {
+      background:
+        radial-gradient(900px 480px at 90% -8%, rgba(244,114,182,.28), transparent 62%),
+        radial-gradient(1000px 520px at 0% 100%, rgba(132,204,22,.25), transparent 60%),
+        linear-gradient(180deg, #fff1f7 0%, #f0fadc 60%, #e3f5c4 100%);
+    }
+    body[data-ambiance="ete"] {
+      background:
+        radial-gradient(700px 700px at 92% -12%, rgba(253,224,71,.65), rgba(253,186,116,.25) 45%, transparent 70%),
+        linear-gradient(180deg, #d8f0ff 0%, #eaf8ff 40%, #fff2c9 100%);
+    }
+    body[data-ambiance="stade"] {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 40%),
+        repeating-linear-gradient(90deg, #cdeccf 0 90px, #bfe4c3 90px 180px);
+    }
+
+    body[data-ambiance="halloween"] {
+      background:
+        radial-gradient(900px 520px at 8% -8%, rgba(249,115,22,.40), transparent 62%),
+        radial-gradient(1000px 560px at 100% 100%, rgba(124,58,237,.28), transparent 60%),
+        linear-gradient(180deg, #fff0dd 0%, #f6e2f7 60%, #e6d6f5 100%);
+    }
+    body[data-ambiance="noel"] {
+      background:
+        radial-gradient(900px 500px at 95% -10%, rgba(220,38,38,.20), transparent 62%),
+        radial-gradient(1000px 520px at 0% 100%, rgba(22,101,52,.22), transparent 60%),
+        linear-gradient(180deg, #fff6f3 0%, #eef7f0 55%, #fdf1d0 100%);
+    }
+    body[data-ambiance="victoire"] {
+      background:
+        radial-gradient(800px 460px at 0% -5%, rgba(250,204,21,.30), transparent 62%),
+        radial-gradient(800px 460px at 100% -5%, rgba(244,114,182,.24), transparent 62%),
+        radial-gradient(1000px 520px at 50% 110%, rgba(56,189,248,.24), transparent 60%),
+        linear-gradient(180deg, #fffdf6 0%, #fff8ee 100%);
+    }
+    body[data-ambiance="ldc"] {
+      background:
+        radial-gradient(900px 500px at 50% -12%, rgba(255,255,255,.85), transparent 62%),
+        radial-gradient(900px 520px at 100% 100%, rgba(99,102,241,.30), transparent 60%),
+        linear-gradient(180deg, #dfe6ff 0%, #c9d4fb 55%, #b7c3f1 100%);
+    }
+    body[data-ambiance="ocean"] {
+      background:
+        radial-gradient(1000px 480px at 50% -15%, rgba(255,255,255,.80), transparent 62%),
+        linear-gradient(180deg, #dcf7ff 0%, #aee8f5 55%, #86d6ea 100%);
+    }
+    body[data-ambiance="couchant"] {
+      background:
+        radial-gradient(900px 520px at 50% 112%, rgba(251,146,60,.50), transparent 62%),
+        linear-gradient(180deg, #e3d8f7 0%, #ffcfdc 48%, #ffe0c4 100%);
+    }
+    body[data-ambiance="aurore"] {
+      background: linear-gradient(120deg, #d6fbe8, #d9e8ff, #eadbff, #d6fbe8);
+      background-size: 300% 300%;
+      animation: aurore 45s ease-in-out infinite alternate;
+    }
+    @keyframes aurore { from { background-position: 0% 40%; } to { background-position: 100% 60%; } }
+    @media (prefers-reduced-motion: reduce) { body[data-ambiance="aurore"] { animation: none; } }
+    body[data-ambiance="pluie"] {
+      background:
+        radial-gradient(1000px 480px at 30% -15%, rgba(255,255,255,.65), transparent 62%),
+        linear-gradient(180deg, #e7ebf0 0%, #d0d9e4 55%, #bcc8d7 100%);
+    }
+
+    /* Cartes légèrement translucides pour laisser transparaître l'ambiance */
+    body[data-ambiance]:not([data-ambiance="classique"]) .card,
+    body[data-ambiance]:not([data-ambiance="classique"]) .surface {
+      background-color: rgba(255,255,255,.90);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    }
+    #ambianceSelect {
+      background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: .75rem;
+      font-size: .75rem; font-weight: 600; color: #334155; padding: .6rem .6rem; cursor: pointer;
+    }
   </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-  <div class="max-w-7xl mx-auto space-y-8">
+  <div id="appRoot" class="max-w-7xl mx-auto space-y-8">
     
     <!-- EN-TÊTE ET ACTIONS -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+    <div class="surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
       <div class="flex items-center gap-3">
         <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
           <i class="fa-solid fa-chart-line text-xl"></i>
@@ -131,6 +224,7 @@
       </div>
       
       <div class="flex items-center gap-2 w-full md:w-auto">
+        <select id="ambianceSelect" onchange="changerAmbiance(this.value)" title="Ambiance du fond" class="flex-1 md:flex-none"></select>
         <button onclick="exportCSV()" class="flex-1 md:flex-none justify-center bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-sm">
           <i class="fa-solid fa-file-excel text-emerald-600"></i> <span class="hidden sm:inline">Export</span>CSV
         </button>
@@ -145,7 +239,7 @@
     </div>
 
     <!-- ONGLETS PRINCIPAUX -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-1.5 flex items-center gap-1.5 shadow-sm w-full sm:w-auto sm:inline-flex">
+    <div class="surface bg-white border border-slate-200 rounded-2xl p-1.5 flex items-center gap-1.5 shadow-sm w-full sm:w-auto sm:inline-flex">
       <button onclick="switchView('tracker')" id="btnViewTracker" class="px-4 py-2 rounded-xl transition bg-blue-600 text-white shadow-sm font-bold text-sm flex items-center gap-2">
         <i class="fa-solid fa-chart-line"></i> Mes Paris
       </button>
@@ -4092,6 +4186,7 @@
       renderGroupedStats();
       renderFootballCategoryStats();
       renderGlobalBankrollChart();
+      if (window.majAmbianceAuto) window.majAmbianceAuto();
     }
 
     function hexToRgba(hex, alpha) {
@@ -4100,6 +4195,312 @@
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
+
+
+    // ===================== AMBIANCES (fonds saisonniers) =====================
+    (function () {
+      // groupe : saisons / fêtes / ambiances
+      const AMBIANCES = {
+        automne:   { label: '🍂 Automne',            groupe: 'Saisons' },
+        hiver:     { label: '❄️ Hiver',              groupe: 'Saisons' },
+        printemps: { label: '🌸 Printemps',          groupe: 'Saisons' },
+        ete:       { label: '☀️ Été',                groupe: 'Saisons' },
+        halloween: { label: '🎃 Halloween',          groupe: 'Fêtes' },
+        noel:      { label: '🎄 Noël',               groupe: 'Fêtes' },
+        victoire:  { label: '🎉 Victoire (confettis)', groupe: 'Fêtes' },
+        stade:     { label: '⚽ Soir de match',      groupe: 'Ambiances' },
+        ldc:       { label: '⭐ Soirée européenne',  groupe: 'Ambiances' },
+        ocean:     { label: '🌊 Océan',              groupe: 'Ambiances' },
+        couchant:  { label: '🌅 Coucher de soleil',  groupe: 'Ambiances' },
+        aurore:    { label: '🌌 Aurore boréale',     groupe: 'Ambiances' },
+        pluie:     { label: '🌧️ Pluie douce',        groupe: 'Ambiances' },
+        classique: { label: '⚪ Classique (uni)',    groupe: 'Ambiances' }
+      };
+
+      // Auto : saison météo (hémisphère nord), avec Halloween (25-31 oct.) et Noël (1-26 déc.).
+      function saisonDuJour() {
+        const d = new Date(), m = d.getMonth(), j = d.getDate();
+        if (m === 9 && j >= 25) return 'halloween';
+        if (m === 11 && j <= 26) return 'noel';
+        if (m === 11 || m <= 1) return 'hiver';
+        if (m <= 4) return 'printemps';
+        if (m <= 7) return 'ete';
+        return 'automne';
+      }
+
+      // ---- Auto intelligent : l'ambiance suit ton activité du jour et l'heure ----
+      const HEURE_SOIR = 18; // à partir de cette heure, des paris en cours = "soir de match"
+
+      function dateLocale() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+
+      // Paris simples du jour (football + tennis) : bilan des réglés, nombre de paris en cours.
+      function bilanDuJour() {
+        const today = dateLocale();
+        let profit = 0, regles = 0, enCours = 0;
+        ['football', 'tennis'].forEach(sp => (state[sp] || []).forEach(b => {
+          if (b.date !== today) return;
+          const mise = parseFloat(b.stake) || 0, cote = parseFloat(b.odds) || 1;
+          if (b.status === 'Won') { profit += (cote - 1) * mise; regles++; }
+          else if (b.status === 'Lost') { profit -= mise; regles++; }
+          else enCours++;
+        }));
+        return { profit: profit, regles: regles, enCours: enCours };
+      }
+
+      // mode 'auto' (intelligent) ou 'saison' (date uniquement). Renvoie { nom, raison }.
+      function resoudreAuto(mode) {
+        const saison = saisonDuJour();
+        if (mode === 'saison') {
+          const fete = saison === 'halloween' || saison === 'noel';
+          return { nom: saison, raison: fete ? 'Période de fête' : 'Selon la saison' };
+        }
+        const b = bilanDuJour();
+        const d = new Date(), h = d.getHours(), jour = d.getDay(); // 2 = mardi, 3 = mercredi
+        const euro = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + ' €';
+        if (b.regles > 0 && b.profit > 0)
+          return { nom: 'victoire', raison: 'Journée gagnante (' + euro(b.profit) + ')' };
+        if (h >= HEURE_SOIR && b.enCours > 0)
+          return (jour === 2 || jour === 3)
+            ? { nom: 'ldc', raison: 'Soirée européenne : ' + b.enCours + ' pari(s) en cours' }
+            : { nom: 'stade', raison: 'Soir de match : ' + b.enCours + ' pari(s) en cours' };
+        if (saison === 'halloween' || saison === 'noel')
+          return { nom: saison, raison: 'Période de fête' };
+        if (b.regles > 0 && b.profit < 0)
+          return { nom: 'pluie', raison: 'Journée perdante (' + euro(b.profit) + ')' };
+        return { nom: saison, raison: 'Selon la saison' };
+      }
+
+      // forme : feuille | neige | petale | lumiere | chauvesouris | bulle | etoile | confetti | pluie
+      const PARTICULES = {
+        automne:   { forme: 'feuille', couleurs: ['#c2410c', '#ea580c', '#d97706', '#b45309', '#f59e0b'], n: 22, v: 0.55 },
+        hiver:     { forme: 'neige',   couleurs: ['#ffffff'], n: 60, v: 0.45 },
+        printemps: { forme: 'petale',  couleurs: ['#f9a8d4', '#fbcfe8', '#f472b6', '#fde68a'], n: 26, v: 0.5 },
+        ete:       { forme: 'lumiere', couleurs: ['#fde047', '#fbbf24', '#ffffff'], n: 24, v: 0.25 },
+        halloween: { forme: 'chauvesouris', couleurs: ['#4c1d95', '#581c87', '#3b0764'], n: 9, v: 1 },
+        noel:      { forme: 'neige',   couleurs: ['#ffffff', '#ffffff', '#fcd34d'], n: 55, v: 0.45 },
+        victoire:  { forme: 'confetti', couleurs: ['#f59e0b', '#ec4899', '#38bdf8', '#22c55e', '#a855f7', '#ef4444'], n: 34, v: 0.8 },
+        ldc:       { forme: 'etoile',  couleurs: ['#ffffff', '#fef9c3', '#c7d2fe'], n: 38, v: 0, fixe: true },
+        ocean:     { forme: 'bulle',   couleurs: ['#ffffff'], n: 26, v: 0.5 },
+        couchant:  { forme: 'lumiere', couleurs: ['#fb923c', '#f472b6', '#fde68a'], n: 20, v: 0.2 },
+        aurore:    { forme: 'etoile',  couleurs: ['#ffffff', '#a7f3d0', '#ddd6fe'], n: 26, v: 0, fixe: true },
+        pluie:     { forme: 'pluie',   couleurs: ['#64748b'], n: 70, v: 1 }
+      };
+
+      const canvas = document.createElement('canvas');
+      canvas.id = 'ambianceCanvas';
+      document.body.insertBefore(canvas, document.body.firstChild);
+      const ctx = canvas.getContext('2d');
+      let parts = [], raf = null, w = 0, h = 0, dpr = 1, config = null, last = 0;
+
+      const reduit = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function redim() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function nouvelle(initial) {
+        const c = config, f = c.forme;
+        const taille = f === 'neige' ? 1.5 + Math.random() * 3
+                     : f === 'lumiere' ? 6 + Math.random() * 16
+                     : f === 'etoile' ? 2 + Math.random() * 4
+                     : f === 'bulle' ? 3 + Math.random() * 9
+                     : f === 'chauvesouris' ? 9 + Math.random() * 7
+                     : f === 'confetti' ? 4 + Math.random() * 4
+                     : f === 'pluie' ? 8 + Math.random() * 12
+                     : 7 + Math.random() * 7;
+        const monte = (f === 'lumiere' || f === 'bulle');
+        const p = {
+          x: Math.random() * w,
+          y: initial ? Math.random() * h : (monte ? h + 20 : -20),
+          r: taille,
+          vy: (0.4 + Math.random() * 0.9) * c.v * (monte ? -0.6 : 1),
+          vx: (Math.random() - 0.5) * 0.5,
+          ang: Math.random() * Math.PI * 2,
+          va: (Math.random() - 0.5) * 0.03,
+          ph: Math.random() * Math.PI * 2,
+          couleur: c.couleurs[Math.floor(Math.random() * c.couleurs.length)],
+          alpha: monte && f === 'lumiere' ? 0.10 + Math.random() * 0.18 : 0.55 + Math.random() * 0.35
+        };
+        if (f === 'pluie') { p.vy = (7 + Math.random() * 5) * c.v; p.vx = -1.2; p.alpha = 0.18 + Math.random() * 0.25; }
+        if (f === 'etoile') { p.alpha = 0.5 + Math.random() * 0.4; p.y = Math.random() * h; }
+        if (f === 'chauvesouris') {
+          p.vx = (Math.random() < 0.5 ? -1 : 1) * (0.7 + Math.random() * 1.1);
+          p.vy = 0; p.y = h * (0.1 + Math.random() * 0.7); p.x = initial ? Math.random() * w : (p.vx > 0 ? -30 : w + 30);
+          p.alpha = 0.55;
+        }
+        if (f === 'confetti') p.va = (Math.random() - 0.5) * 0.12;
+        return p;
+      }
+
+      function dessine(p) {
+        const f = config.forme;
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.fillStyle = p.couleur;
+        if (f === 'neige') {
+          ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+        } else if (f === 'lumiere') {
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, p.r);
+          g.addColorStop(0, p.couleur); g.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+        } else if (f === 'feuille') {
+          ctx.rotate(p.ang);
+          ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = 'rgba(80,30,0,.45)'; ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(-p.r, 0); ctx.lineTo(p.r, 0); ctx.stroke();
+        } else if (f === 'petale') {
+          ctx.rotate(p.ang);
+          ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.75, p.r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+        } else if (f === 'bulle') {
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
+          ctx.fillStyle = 'rgba(255,255,255,.25)';
+          ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(-p.r * 0.35, -p.r * 0.35, p.r * 0.2, 0, Math.PI * 2); ctx.fill();
+        } else if (f === 'etoile') {
+          // étoile à 4 branches qui scintille
+          ctx.globalAlpha = p.alpha * (0.45 + 0.55 * Math.abs(Math.sin(p.ph * 1.4)));
+          const r = p.r;
+          ctx.beginPath();
+          ctx.moveTo(0, -r * 1.8); ctx.quadraticCurveTo(r * 0.25, -r * 0.25, r * 1.8, 0);
+          ctx.quadraticCurveTo(r * 0.25, r * 0.25, 0, r * 1.8);
+          ctx.quadraticCurveTo(-r * 0.25, r * 0.25, -r * 1.8, 0);
+          ctx.quadraticCurveTo(-r * 0.25, -r * 0.25, 0, -r * 1.8);
+          ctx.fill();
+        } else if (f === 'confetti') {
+          ctx.rotate(p.ang);
+          ctx.scale(1, Math.cos(p.ph * 2));
+          ctx.fillRect(-p.r, -p.r * 0.5, p.r * 2, p.r);
+        } else if (f === 'pluie') {
+          ctx.strokeStyle = p.couleur; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(p.vx * 1.5, p.r); ctx.stroke();
+        } else if (f === 'chauvesouris') {
+          const batt = Math.sin(p.ph * 4);               // battement d'ailes
+          const s = p.r / 10, dir = p.vx > 0 ? 1 : -1;
+          ctx.scale(dir * s, s);
+          ctx.beginPath(); ctx.ellipse(0, 0, 3, 4.5, 0, 0, Math.PI * 2); ctx.fill();   // corps
+          ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(-1.2, -7); ctx.lineTo(0, -4.5); ctx.lineTo(1.2, -7); ctx.lineTo(2, -4); ctx.fill(); // oreilles
+          [-1, 1].forEach(side => {
+            ctx.beginPath();
+            ctx.moveTo(side * 2, -1);
+            ctx.quadraticCurveTo(side * 9, -9 - batt * 5, side * 16, -2 - batt * 6);
+            ctx.quadraticCurveTo(side * 12, 0, side * 10, 3);
+            ctx.quadraticCurveTo(side * 6, 1, side * 4, 4);
+            ctx.quadraticCurveTo(side * 3, 2, side * 2, 3);
+            ctx.closePath(); ctx.fill();
+          });
+        }
+        ctx.restore();
+      }
+
+      function boucle(t) {
+        raf = requestAnimationFrame(boucle);
+        if (t - last < 33) return; // ~30 images/s, suffisant et léger
+        last = t;
+        ctx.clearRect(0, 0, w, h);
+        const f = config.forme;
+        for (let i = 0; i < parts.length; i++) {
+          let p = parts[i];
+          p.ph += 0.02;
+          if (!config.fixe) {
+            if (f === 'chauvesouris') {
+              p.x += p.vx; p.y += Math.sin(p.ph * 1.5) * 0.9;
+              if (p.x < -40 || p.x > w + 40) { p = parts[i] = nouvelle(false); }
+            } else {
+              p.x += p.vx + Math.sin(p.ph) * (f === 'neige' ? 0.35 : f === 'pluie' ? 0 : 0.6);
+              p.y += p.vy;
+              p.ang += p.va;
+              if (p.y > h + 24 || p.y < -30 || p.x < -30 || p.x > w + 30) p = parts[i] = nouvelle(false);
+            }
+          }
+          dessine(p);
+        }
+      }
+
+      function arreter() {
+        if (raf) cancelAnimationFrame(raf);
+        raf = null; parts = [];
+        ctx.clearRect(0, 0, w, h);
+      }
+
+      function demarrer(nom) {
+        arreter();
+        config = PARTICULES[nom];
+        if (!config || reduit()) return;
+        redim();
+        const n = Math.round(config.n * (w < 640 ? 0.55 : 1));
+        for (let i = 0; i < n; i++) parts.push(nouvelle(true));
+        raf = requestAnimationFrame(boucle);
+      }
+
+      function choixSauvegarde() {
+        try { return localStorage.getItem('pronotracker_ambiance') || 'auto'; } catch (e) { return 'auto'; }
+      }
+
+      let courant = null;
+      const estAuto = c => c === 'auto' || c === 'saison';
+
+      function appliquer(choix) {
+        let nom, raison = '';
+        if (estAuto(choix)) { const r = resoudreAuto(choix); nom = r.nom; raison = r.raison; }
+        else nom = AMBIANCES[choix] ? choix : saisonDuJour();
+        if (nom !== courant) {            // on ne relance les animations que si l'ambiance change vraiment
+          courant = nom;
+          document.body.setAttribute('data-ambiance', nom);
+          demarrer(nom);
+        }
+        const sel = document.getElementById('ambianceSelect');
+        if (sel) {
+          const lib = AMBIANCES[nom].label.replace(/^\S+\s/, '');
+          const oa = sel.querySelector('option[value="auto"]'), os = sel.querySelector('option[value="saison"]');
+          if (oa) oa.textContent = '🎨 Auto intelligent — ' + lib;
+          if (os) os.textContent = '📅 Auto saisons — ' + AMBIANCES[saisonDuJour()].label.replace(/^\S+\s/, '');
+          sel.value = (estAuto(choix) || AMBIANCES[choix]) ? choix : 'auto';
+          sel.title = estAuto(choix) ? 'Auto : ' + raison : 'Ambiance choisie manuellement';
+        }
+      }
+
+      // Recalcule l'ambiance automatique (appelée à chaque mise à jour des paris et toutes les 5 min).
+      window.majAmbianceAuto = function () {
+        const c = choixSauvegarde();
+        if (estAuto(c)) appliquer(c);
+      };
+
+      window.changerAmbiance = function (choix) {
+        try { localStorage.setItem('pronotracker_ambiance', choix); } catch (e) {}
+        appliquer(choix);
+      };
+
+      // Menu : "Auto" indique l'ambiance du moment, puis les ambiances par groupe.
+      const sel = document.getElementById('ambianceSelect');
+      if (sel) {
+        let html = `<option value="auto">🎨 Auto intelligent</option><option value="saison">📅 Auto saisons</option>`;
+        ['Saisons', 'Fêtes', 'Ambiances'].forEach(g => {
+          html += `<optgroup label="${g}">` +
+            Object.keys(AMBIANCES).filter(k => AMBIANCES[k].groupe === g)
+              .map(k => `<option value="${k}">${AMBIANCES[k].label}</option>`).join('') + `</optgroup>`;
+        });
+        sel.innerHTML = html;
+      }
+
+      window.addEventListener('resize', () => { if (config && !reduit()) { redim(); } });
+      // Économie de batterie : pause quand l'onglet est caché.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+        else if (config && !reduit() && !raf && parts.length) raf = requestAnimationFrame(boucle);
+      });
+
+      appliquer(choixSauvegarde());
+      setInterval(window.majAmbianceAuto, 5 * 60 * 1000);
+    })();
 
     window.onload = function() { switchSport('football'); };
   </script>
