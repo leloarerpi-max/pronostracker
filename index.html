@@ -1540,6 +1540,44 @@
         return candidats;
     }
 
+    // Repli quand le texte ne contient QUE des cotes (aucun % par équipe) : on classe les options
+    // d'après la probabilité implicite des cotes, marge du bookmaker retirée. Aucune "valeur"
+    // n'est calculée (pas de statistiques) : c'est seulement un classement du plus probable
+    // selon le marché, en ignorant les cotes trop basses pour être intéressantes (< 1,40).
+    function genererCandidatsCotesSeules(home, away, cotes) {
+        const defs = [];
+        const add = (label, cle, groupe) => { if (cotes[cle] != null) defs.push({ label, cle, groupe }); };
+        add(`${home} gagne la 1ère mi-temps`, 'home_win_1H', '1H');
+        add('Match nul à la mi-temps', 'draw_1H', '1H');
+        add(`${away} gagne la 1ère mi-temps`, 'away_win_1H', '1H');
+        add(`${home} gagne le match`, 'home_win_FT', 'FT');
+        add('Match nul au score final', 'draw_FT', 'FT');
+        add(`${away} gagne le match`, 'away_win_FT', 'FT');
+        Object.keys(cotes).forEach(cle => {
+            const m = cle.match(/^(over|under)([\d.]+)_(1H|FT)$/);
+            if (!m) return;
+            const lib = directionLabel(m[1] + m[2]) + (m[3] === '1H' ? ' en 1ère mi-temps' : ' sur le match complet');
+            add(lib, cle, 'OU_' + m[3] + '_' + m[2]);
+        });
+        add('Les deux équipes marquent (BTTS oui)', 'btts_yes', 'BTTS');
+        add('Au moins une équipe ne marque pas (BTTS non)', 'btts_no', 'BTTS');
+
+        const somme = {}, nb = {};
+        defs.forEach(d => { somme[d.groupe] = (somme[d.groupe] || 0) + 1 / cotes[d.cle]; nb[d.groupe] = (nb[d.groupe] || 0) + 1; });
+        const res = [];
+        defs.forEach(d => {
+            const cote = cotes[d.cle];
+            // Groupe complet (1N2 : 3 issues, O/U et BTTS : 2 issues) -> marge retirée ; sinon cote brute.
+            const complet = (d.groupe === '1H' || d.groupe === 'FT') ? nb[d.groupe] === 3 : nb[d.groupe] === 2;
+            const proba = (complet ? (1 / cote) / somme[d.groupe] : 1 / cote) * 100;
+            if (cote < 1.40) return;
+            res.push({ label: d.label, score: proba, spread: null, nbSources: 1, cote, cotesSeules: true,
+                finalScore: proba - 15, conflit: false,
+                detail: `Probabilité implicite des cotes ≈ ${Math.round(proba)} % (marge du bookmaker retirée${complet ? '' : ' impossible : marché incomplet'}). Aucune statistique en % fournie dans le texte.` });
+        });
+        return res;
+    }
+
     // Convertit une date extraite du texte (formats variés) vers le format YYYY-MM-DD attendu
     // par le tracker. Repli sur la date du jour si le format n'est pas reconnu.
     function normalizeDateAnalyseur(str) {
@@ -1590,6 +1628,7 @@
             const cotes = parseCotes(rawText, home, away);
 
             candidats = genererCandidats(home, away, resHome, resAway, butsHome, butsAway, bttsHome, bttsAway, cotes);
+            if (candidats.length === 0) candidats = genererCandidatsCotesSeules(home, away, cotes);
             candidats.sort((a, b) => (b.finalScore - a.finalScore) || (b.cote - a.cote));
         }
 
@@ -1605,7 +1644,7 @@
                 html += `
                 <div class="bet-card ${c.conflit ? 'conflit' : ''}">
                     <div class="bet-title">Option ${i + 1} : ${c.label} (cote ${fmtCote(c.cote)})</div>
-                    <div class="bet-meta">Score de fiabilité calculé : ${Math.round(c.finalScore)}/100 ${c.nbSources === 1 ? '· une seule source de données, à confirmer' : ''} ${c.conflit ? '· ⚠️ signaux domicile/extérieur contradictoires' : ''}</div>
+                    <div class="bet-meta">Score de fiabilité calculé : ${Math.round(c.finalScore)}/100 ${c.cotesSeules ? '· d\'après les cotes seules (pas de statistiques), à confirmer' : c.nbSources === 1 ? '· une seule source de données, à confirmer' : ''} ${c.conflit ? '· ⚠️ signaux domicile/extérieur contradictoires' : ''}</div>
                     <p><strong>Détail :</strong> ${c.detail}</p>
                 </div>`;
             });
