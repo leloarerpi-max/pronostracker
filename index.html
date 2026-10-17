@@ -874,7 +874,29 @@
 
   <script>
     let currentSport = 'football';
-    let state = JSON.parse(localStorage.getItem('prono_tracker_multisport_data')) || { football: [] };
+    // Lecture protégée : si la donnée principale est illisible, on essaie la copie de secours (sans jamais l'écraser).
+    const DATA_KEY = 'prono_tracker_multisport_data';
+    const DATA_BAK_KEY = 'prono_tracker_multisport_data_bak';
+    let loadWarning = '';
+    function lireEtatStocke() {
+      for (const k of [DATA_KEY, DATA_BAK_KEY]) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (!raw) continue;
+          const obj = JSON.parse(raw);
+          if (obj && typeof obj === 'object' && Array.isArray(obj.football)) {
+            if (k === DATA_BAK_KEY) loadWarning = 'Les données principales étaient illisibles : la copie de secours a été restaurée.';
+            return obj;
+          }
+        } catch (e) {
+          try { localStorage.setItem(k + '_corrompu', localStorage.getItem(k)); } catch (e2) {}
+        }
+      }
+      return null;
+    }
+    let state = lireEtatStocke() || { football: [] };
+    // Demande au navigateur de ne pas effacer les données du site quand il manque de place.
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
     // Le tennis n'existe plus dans l'appli : on purge toute donnée tennis restante.
     delete state.tennis;
     if (state.combos) delete state.combos.tennis;
@@ -963,7 +985,7 @@
     let compFilterMode = localStorage.getItem('pronotracker_compFilterMode') || 'include'; // 'include' ou 'exclude'
 
     function saveCompFiltersToStorage() {
-      localStorage.setItem('pronotracker_compFilters', JSON.stringify(Array.from(currentCompFilters)));
+      try { localStorage.setItem('pronotracker_compFilters', JSON.stringify(Array.from(currentCompFilters))); } catch (e) {}
     }
     let currentMarketFilter = null;
     let currentOddsFilter = null;
@@ -1005,7 +1027,7 @@
     }
 
     function saveMarketsToStorage() {
-      localStorage.setItem('pronotracker_customMarkets', JSON.stringify(footballMarkets));
+      try { localStorage.setItem('pronotracker_customMarkets', JSON.stringify(footballMarkets)); } catch (e) {}
       if (window.syncSchedule) window.syncSchedule();
     }
 
@@ -1101,16 +1123,47 @@
       return str.toLowerCase().replace(/vs|\-|\_/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
-    function saveState() {
-      localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state));
-      populateCompFilterOptions();
-      render();
-      if (window.syncSchedule) window.syncSchedule();
+    // Bandeau rouge visible quand l'enregistrement échoue (avant : échec silencieux).
+    function afficherAlerteSauvegarde(msg) {
+      let el = document.getElementById('saveErrorBanner');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'saveErrorBanner';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:12px 16px;font:700 13px system-ui,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+        el.onclick = () => el.remove();
+        document.body.appendChild(el);
+      }
+      el.textContent = msg;
     }
+    function ecrireEtatStocke() {
+      let json;
+      try { json = JSON.stringify(state); } catch (e) { return { ok: false, err: e }; }
+      try { localStorage.setItem(DATA_KEY, json); } catch (e) { return { ok: false, err: e }; }
+      // Vérification : on relit pour être sûr que c'est bien écrit.
+      try { if (localStorage.getItem(DATA_KEY) !== json) return { ok: false, err: new Error('relecture différente') }; } catch (e) { return { ok: false, err: e }; }
+      try { localStorage.setItem(DATA_BAK_KEY, json); } catch (e) {} // copie de secours, non bloquante
+      return { ok: true };
+    }
+    function saveState() {
+      const r = ecrireEtatStocke();
+      if (!r.ok) {
+        console.error('Sauvegarde impossible', r.err);
+        afficherAlerteSauvegarde('⚠️ ENREGISTREMENT IMPOSSIBLE : tes derniers changements ne sont PAS sauvegardés (navigation privée ou stockage plein ?). Clique « Sauvegarder » (export) maintenant.');
+      } else {
+        const b = document.getElementById('saveErrorBanner'); if (b) b.remove();
+      }
+      try { populateCompFilterOptions(); } catch (e) { console.error(e); }
+      try { render(); } catch (e) { console.error(e); }
+      try { if (window.syncSchedule) window.syncSchedule(); } catch (e) { console.error(e); }
+    }
+    window.addEventListener('load', () => { if (loadWarning) afficherAlerteSauvegarde('ℹ️ ' + loadWarning); });
+    // Dès que l'onglet est quitté, on réécrit l'état (couvre les modifications faites sans passer par saveState).
+    document.addEventListener('visibilitychange', () => { if (document.hidden) ecrireEtatStocke(); });
+    window.addEventListener('pagehide', () => { ecrireEtatStocke(); });
 
     function setCompFilterMode(mode) {
       compFilterMode = mode;
-      localStorage.setItem('pronotracker_compFilterMode', mode);
+      try { localStorage.setItem('pronotracker_compFilterMode', mode); } catch (e) {}
       updateCompFilterModeButtons();
       render();
       renderGroupedStats();
@@ -1959,6 +2012,10 @@
         try {
           const importedData = JSON.parse(e.target.result);
           if (importedData && typeof importedData === 'object' && importedData.football) {
+            // L'import REMPLACE tout : on prévient si le fichier a moins de paris que l'appli, et on garde une copie.
+            const nActuel = (state.football || []).length, nFichier = Array.isArray(importedData.football) ? importedData.football.length : 0;
+            if (nFichier < nActuel && !confirm('⚠️ Ce fichier contient ' + nFichier + ' pari(s), l\'appli en contient ' + nActuel + '.\n\nL\'import REMPLACE tout : les ' + (nActuel - nFichier) + ' pari(s) en plus seront perdus.\n\nContinuer ?')) return;
+            try { localStorage.setItem('prono_tracker_avant_import', JSON.stringify(state)); } catch (e3) {}
             state = {
               football: Array.isArray(importedData.football) ? importedData.football : [],
               combos: {
@@ -2018,7 +2075,7 @@
           title: 'Sauvegarde PronoTracker',
           text: 'Export de mes pronostics'
         }).then(() => {
-          localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
+          try { localStorage.setItem('pronotracker_lastBackup', new Date().toISOString()); } catch (e) {}
           updateBackupBanner();
         }).catch(err => {
           if (err && err.name !== 'AbortError') {
@@ -2039,12 +2096,12 @@
       downloadAnchor.click();
       downloadAnchor.remove();
       URL.revokeObjectURL(url);
-      localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
+      try { localStorage.setItem('pronotracker_lastBackup', new Date().toISOString()); } catch (e) {}
       updateBackupBanner();
     }
 
     function snoozeBackupBanner() {
-      localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString());
+      try { localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString()); } catch (e) {}
       document.getElementById('backupBanner').classList.add('hidden');
       document.getElementById('backupBanner').classList.remove('flex');
     }
