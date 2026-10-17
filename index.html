@@ -630,8 +630,8 @@
                 <th class="p-3 text-center whitespace-nowrap w-8"><i class="fa-solid fa-check-double text-slate-300" title="Sélection pour combiner"></i></th>
                 <th onclick="toggleSort('betNum')" class="p-3 text-center sortable whitespace-nowrap">N° <span id="sort-betNum"></span></th>
                 <th onclick="toggleSort('date')" class="p-3 sortable whitespace-nowrap">Date <span id="sort-date">▼</span></th>
-                <th onclick="toggleSort('match')" class="p-3 sortable">Match <span id="sort-match"></span></th>
-                <th onclick="toggleSort('prono')" class="p-3 sortable">Pronostic <span id="sort-prono"></span></th>
+                <th onclick="toggleSort('match')" title="Trier par compétition" class="p-3 sortable">Match <span class="normal-case font-semibold text-[9px] text-slate-400">(par compét.)</span> <span id="sort-match"></span></th>
+                <th onclick="toggleSort('prono')" title="Trier par marché" class="p-3 sortable">Pronostic <span class="normal-case font-semibold text-[9px] text-slate-400">(par marché)</span> <span id="sort-prono"></span></th>
                 <th onclick="toggleSort('odds')" class="p-3 text-center sortable whitespace-nowrap">Cote <span id="sort-odds"></span></th>
                 <th onclick="toggleSort('stake')" class="p-3 text-center sortable whitespace-nowrap">Mise <span id="sort-stake"></span></th>
                 <th onclick="toggleSort('status')" class="p-3 text-center sortable whitespace-nowrap">Statut <span id="sort-status"></span></th>
@@ -2654,6 +2654,14 @@
       render();
     }
 
+    // Affiche la flèche du tri actif dans l'en-tête de la colonne concernée.
+    function peindreFlechesTri() {
+      ['betNum', 'date', 'match', 'prono', 'odds', 'stake', 'status'].forEach(f => {
+        const el = document.getElementById('sort-' + f);
+        if (el) el.textContent = (currentSort.field === f) ? (currentSort.dir === 'asc' ? '▲' : '▼') : '';
+      });
+    }
+
     function toggleSort(field) {
       if (currentSort.field === field) {
         currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
@@ -2909,12 +2917,15 @@
           if (numB === undefined) return -1;
           return currentSort.dir === 'asc' ? numA - numB : numB - numA;
         } else {
-          let valA = a[currentSort.field] || '';
-          let valB = b[currentSort.field] || '';
-          if (typeof valA === 'string') valA = valA.toLowerCase();
-          if (typeof valB === 'string') valB = valB.toLowerCase();
+          // Colonne "Match" -> tri par compétition ; colonne "Pronostic" -> tri par marché
+          // (à égalité, on départage par nom de match / par pronostic).
+          const cleTri = { match: 'comp', prono: 'market' }[currentSort.field] || currentSort.field;
+          const cleSecondaire = { match: 'match', prono: 'prono' }[currentSort.field] || null;
+          const val = (x, k) => { let v = x[k] || ''; return typeof v === 'string' ? v.toLowerCase() : v; };
+          let valA = val(a, cleTri), valB = val(b, cleTri);
           if (valA < valB) return currentSort.dir === 'asc' ? -1 : 1;
           if (valA > valB) return currentSort.dir === 'asc' ? 1 : -1;
+          if (cleSecondaire) return String(val(a, cleSecondaire)).localeCompare(String(val(b, cleSecondaire)));
           return 0;
         }
       });
@@ -4039,6 +4050,7 @@
     }
 
     function render() {
+      peindreFlechesTri();
       updateBackupBanner();
       updateComboSelectionBar();
 
