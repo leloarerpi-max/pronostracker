@@ -454,6 +454,27 @@
           </div>
           <p id="calibrationNote" class="text-[10px] text-slate-400"></p>
         </div>
+
+        <div class="card p-5 space-y-3 lg:col-span-2">
+          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
+            <i class="fa-solid fa-shield-halved text-rose-500"></i> Stats par équipe : où tu gagnes, où tu perds
+          </h3>
+          <p class="text-[11px] text-slate-500">Compte tous tes paris terminés sur les matchs de l'équipe, quel que soit le marché. Seules les équipes avec au moins 3 paris sont listées.</p>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <div class="text-[11px] font-extrabold text-emerald-700 mb-1">✅ Les plus rentables</div>
+              <table class="w-full text-center text-xs"><thead><tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                <th class="p-2 text-left">Équipe</th><th class="p-2">Paris</th><th class="p-2">Réussite</th><th class="p-2">Profit</th></tr></thead>
+                <tbody id="teamBestTbody" class="divide-y divide-slate-100 font-medium"></tbody></table>
+            </div>
+            <div>
+              <div class="text-[11px] font-extrabold text-rose-700 mb-1">⚠️ Les pièges (les plus coûteuses)</div>
+              <table class="w-full text-center text-xs"><thead><tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                <th class="p-2 text-left">Équipe</th><th class="p-2">Paris</th><th class="p-2">Réussite</th><th class="p-2">Profit</th></tr></thead>
+                <tbody id="teamWorstTbody" class="divide-y divide-slate-100 font-medium"></tbody></table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3761,6 +3782,38 @@
           || '<tr><td colspan="5" class="p-3 text-slate-400 italic">Pas encore de paris terminés.</td></tr>';
         const note = document.getElementById('calibrationNote');
         if (note) note.textContent = 'Les cotes enregistrées via l\'Analyseur sont déjà réduites de 4,88 %, ce qui gonfle un peu la réussite attendue. En dessous de 20 paris par tranche, l\'écart peut venir du hasard.';
+      })();
+
+      // --- Stats par équipe ---
+      (function () {
+        const best = document.getElementById('teamBestTbody'), worst = document.getElementById('teamWorstTbody');
+        if (!best || !worst) return;
+        const equipes = {};
+        currentList.forEach(b => {
+          if (b.status !== 'Won' && b.status !== 'Lost') return;
+          const parts = String(b.match || '').split(/\s+(?:vs\.?|contre|-|–)\s+/i).map(x => x.trim()).filter(Boolean);
+          if (parts.length !== 2) return;
+          const mise = parseFloat(b.stake) || 0, cote = parseFloat(b.odds) || 1;
+          const gain = b.status === 'Won' ? (cote - 1) * mise : -mise;
+          parts.forEach(nom => {
+            const cle = scJetons(nom).join(' ') || nom.toLowerCase();
+            const e = equipes[cle] || (equipes[cle] = { noms: {}, n: 0, w: 0, profit: 0 });
+            e.noms[nom] = (e.noms[nom] || 0) + 1;
+            e.n++; if (b.status === 'Won') e.w++; e.profit += gain;
+          });
+        });
+        const liste = Object.values(equipes).filter(e => e.n >= 3).map(e => {
+          e.nom = Object.keys(e.noms).sort((a, c) => e.noms[c] - e.noms[a])[0];
+          return e;
+        });
+        const ligne = e => `<tr><td class="p-2 text-left font-bold text-slate-800">${escAttr(e.nom)}</td><td class="p-2">${e.n}</td>
+          <td class="p-2">${Math.round(e.w / e.n * 100)} %</td>
+          <td class="p-2 font-bold ${e.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${e.profit >= 0 ? '+' : ''}${e.profit.toFixed(2)} €</td></tr>`;
+        const vide = '<tr><td colspan="4" class="p-3 text-slate-400 italic">Pas encore assez de paris (3 minimum par équipe).</td></tr>';
+        const gagnantes = liste.filter(e => e.profit > 0).sort((a, c) => c.profit - a.profit).slice(0, 5);
+        const perdantes = liste.filter(e => e.profit < 0).sort((a, c) => a.profit - c.profit).slice(0, 5);
+        best.innerHTML = gagnantes.map(ligne).join('') || vide;
+        worst.innerHTML = perdantes.map(ligne).join('') || vide;
       })();
 
       const oddsMapOrdered = {};
