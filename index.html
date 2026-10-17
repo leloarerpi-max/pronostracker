@@ -546,7 +546,8 @@
           <h2 class="text-sm font-extrabold flex items-center gap-2 text-slate-800">
             <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Historique des Paris
           </h2>
-          <button onclick="ouvrirGenerateurCombines()" class="text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg shadow-sm sm:ml-auto"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Générer les combinés</button>
+          <button onclick="ouvrirScores()" class="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-sm sm:ml-auto"><i class="fa-solid fa-futbol mr-1"></i>Scores</button>
+          <button onclick="ouvrirGenerateurCombines()" class="text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg shadow-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Générer les combinés</button>
           <button onclick="clearAll()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold transition flex items-center gap-1">
             <i class="fa-solid fa-trash-can"></i> Tout effacer
           </button>
@@ -3146,6 +3147,175 @@
       return (withSign ? (v > 0 ? '+' : v < 0 ? '−' : '') : '') + txt + ' €';
     }
 
+    // ===================== SCORES DES MATCHS (football-data.org) =====================
+    // Affiche seulement le score à côté des paris : rien n'est validé automatiquement.
+    const SC_KEY = 'pronotracker_scores', SC_CFG = 'pronotracker_scores_cfg';
+    const SC_BASE = 'https://api.football-data.org';
+    function scLire(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } }
+    function scEcrire(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    let scoresCache = scLire(SC_KEY, {});
+    let scLog = '';
+
+    function scoreHtml(b) {
+      const r = scoresCache[b.id];
+      if (!r) return '';
+      let txt = '';
+      if (r.st === 'FINISHED' && r.h != null) txt = `Score final : ${r.h}-${r.a}` + (r.hh != null ? ` · mi-temps ${r.hh}-${r.ha}` : '');
+      else if (r.st === 'POSTPONED' || r.st === 'SUSPENDED' || r.st === 'CANCELLED') txt = 'Match reporté / annulé';
+      else if ((r.st === 'IN_PLAY' || r.st === 'PAUSED') && r.h != null) txt = `En cours : ${r.h}-${r.a}`;
+      else return '';
+      return `<div class="text-[10px] font-extrabold text-violet-700">⚽ ${txt}</div>`;
+    }
+
+    const SC_JETONS_IGNORES = new Set(['fc', 'cf', 'ac', 'as', 'sc', 'us', 'ssc', 'afc', 'rc', 'rcd', 'sv', 'vfb', 'vfl', 'fsv', 'tsg', 'og', 'ogc', 'ca', 'cd', 'ud', 'sd', 'de', 'la', 'le', 'the', 'el', 'club', 'calcio', 'fk']);
+    function scJetons(nom) {
+      const n = (nom || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+      const alias = { psg: ['paris', 'saint', 'germain'], om: ['marseille'], ol: ['lyon'], utd: ['united'], spurs: ['tottenham'], barca: ['barcelona'], atleti: ['atletico'] };
+      return n.split(' ').filter(t => t && !SC_JETONS_IGNORES.has(t)).flatMap(t => alias[t] || [t]);
+    }
+    function scJetonEgal(x, y) { return x === y || (Math.min(x.length, y.length) >= 3 && (x.startsWith(y) || y.startsWith(x))); }
+    // 2 = même nom, 1 = un nom contenu dans l'autre, 0 = pas la même équipe
+    function scMemeEquipe(a, b) {
+      const ta = scJetons(a), tb = scJetons(b);
+      if (!ta.length || !tb.length) return 0;
+      if (ta.join(' ') === tb.join(' ')) return 2;
+      const [pt, gd] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+      return pt.every(x => gd.some(y => scJetonEgal(x, y))) ? 1 : 0;
+    }
+    function scMemeEquipeMatch(nomPari, m, cote) {
+      return Math.max(scMemeEquipe(nomPari, m[cote].name), scMemeEquipe(nomPari, m[cote].shortName), scMemeEquipe(nomPari, m[cote].tla));
+    }
+    function scJourLocal(utc) {
+      const d = new Date(utc);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function scEcartJours(d1, d2) { return Math.abs((new Date(d1 + 'T12:00:00') - new Date(d2 + 'T12:00:00')) / 86400000); }
+    function scTrouverMatch(bet, matchs) {
+      const parts = String(bet.match || '').split(/\s+(?:vs\.?|contre|-|–)\s+/i);
+      if (parts.length < 2) return null;
+      let best = null, bestScore = 0;
+      matchs.forEach(m => {
+        if (!m.homeTeam || !m.awayTeam || !bet.date) return;
+        if (scEcartJours(scJourLocal(m.utcDate), bet.date) > 1) return;
+        const h = scMemeEquipeMatch(parts[0], m, 'homeTeam'), a = scMemeEquipeMatch(parts[1], m, 'awayTeam');
+        if (h && a && h + a > bestScore) { bestScore = h + a; best = m; }
+      });
+      return best;
+    }
+    function scAjouterJours(d, n) {
+      const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n);
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    }
+    const scPause = ms => new Promise(r => setTimeout(r, ms));
+
+    function ouvrirScores() {
+      let m = document.getElementById('scoresModal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'scoresModal';
+        m.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50';
+        document.body.appendChild(m);
+      }
+      m.classList.remove('hidden');
+      dessinerScores();
+    }
+    function fermerScores() { const m = document.getElementById('scoresModal'); if (m) m.classList.add('hidden'); }
+
+    function dessinerScores(enCours) {
+      const m = document.getElementById('scoresModal');
+      if (!m) return;
+      const cfg = scLire(SC_CFG, {});
+      const nbAttente = (state.football || []).filter(b => b.status === 'Pending').length;
+      m.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[88vh] flex flex-col">
+          <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-800">⚽ Scores des matchs</h3>
+              <p class="text-[11px] text-slate-500 mt-1">Affiche le score à côté de tes paris « En cours ». Rien n'est validé automatiquement : c'est toi qui cliques ✅ / ❌.</p>
+            </div>
+            <button onclick="fermerScores()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="p-4 space-y-3 overflow-y-auto">
+            <label class="block text-[11px] font-bold text-slate-600">Clé API football-data.org (gratuite)
+              <input id="scKey" type="password" autocomplete="off" value="${escAttr(cfg.key || '')}" placeholder="Colle ta clé ici" class="input-field w-full text-xs mt-1 font-mono">
+            </label>
+            <p class="text-[10px] text-slate-400">Pas encore de clé ? Inscris-toi gratuitement sur football-data.org (« Register »), la clé arrive par e-mail. Elle reste sur cet appareil.</p>
+            <details class="text-[11px] text-slate-500">
+              <summary class="cursor-pointer font-bold">Avancé : adresse d'un relais (seulement si le navigateur bloque l'appel)</summary>
+              <input id="scRelay" type="text" value="${escAttr(cfg.relay || '')}" placeholder="https://mon-relais.exemple.com" class="input-field w-full text-xs mt-2 font-mono">
+            </details>
+            <button onclick="scRecuperer()" ${enCours ? 'disabled' : ''} class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-lg text-xs transition ${enCours ? 'opacity-50' : ''}">
+              <i class="fa-solid fa-rotate mr-1"></i> ${enCours ? 'Recherche en cours…' : `Récupérer les scores (${nbAttente} pari(s) en cours)`}
+            </button>
+            <div id="scLog" class="text-[11px] text-slate-600 whitespace-pre-line">${scLog}</div>
+          </div>
+        </div>`;
+    }
+
+    async function scRecuperer() {
+      const key = (document.getElementById('scKey') || {}).value || '';
+      const relay = ((document.getElementById('scRelay') || {}).value || '').trim().replace(/\/+$/, '');
+      if (!key.trim()) { scLog = '⚠️ Colle d\'abord ta clé API.'; dessinerScores(); return; }
+      scEcrire(SC_CFG, { key: key.trim(), relay });
+      const base = relay || SC_BASE;
+
+      const auj = new Date(); const aujStr = auj.getFullYear() + '-' + String(auj.getMonth() + 1).padStart(2, '0') + '-' + String(auj.getDate()).padStart(2, '0');
+      const limite = scAjouterJours(aujStr, -10);
+      const tous = (state.football || []).filter(b => b.status === 'Pending' && b.date && b.date <= aujStr);
+      const bets = tous.filter(b => b.date >= limite);
+      const anciens = tous.length - bets.length;
+      if (!bets.length) { scLog = 'Aucun pari « En cours » des 10 derniers jours à vérifier.' + (anciens ? `\n${anciens} pari(s) plus ancien(s) ignoré(s) : le service gratuit renvoie au plus 10 jours à la fois.` : ''); dessinerScores(); return; }
+
+      // Fenêtres de 7 jours (le service accepte 10 jours maximum par requête).
+      const jours = [...new Set(bets.map(b => b.date))].sort();
+      const fenetres = [];
+      jours.forEach(j => {
+        const last = fenetres[fenetres.length - 1];
+        if (last && scEcartJours(last.from, j) <= 6) last.to = j; else fenetres.push({ from: j, to: j });
+      });
+
+      scLog = ''; dessinerScores(true);
+      let matchs = [];
+      try {
+        for (let i = 0; i < fenetres.length; i++) {
+          if (i > 0) { scLog = `Pause pour respecter la limite du service gratuit (${i}/${fenetres.length})…`; dessinerScores(true); await scPause(6500); }
+          const f = fenetres[i];
+          const url = `${base}/v4/matches?dateFrom=${scAjouterJours(f.from, -1)}&dateTo=${scAjouterJours(f.to, 1)}`;
+          let rep;
+          try { rep = await fetch(url, { headers: { 'X-Auth-Token': key.trim() } }); }
+          catch (e) {
+            scLog = '❌ Le navigateur n\'a pas pu joindre le service (blocage de sécurité « CORS » ou pas de connexion). Si tu as internet, il faudra utiliser un relais : dis-le moi.';
+            dessinerScores(); return;
+          }
+          if (rep.status === 429) { scLog = '⏳ Trop de requêtes : réessaie dans une minute.'; dessinerScores(); return; }
+          if (rep.status === 400 || rep.status === 401 || rep.status === 403) { scLog = '❌ Clé refusée (' + rep.status + '). Vérifie qu\'elle est bien copiée en entier, sans espace.'; dessinerScores(); return; }
+          if (!rep.ok) { scLog = '❌ Erreur du service (' + rep.status + '). Réessaie plus tard.'; dessinerScores(); return; }
+          const data = await rep.json();
+          matchs = matchs.concat(data.matches || []);
+        }
+      } catch (e) { scLog = '❌ Réponse illisible du service : ' + e.message; dessinerScores(); return; }
+
+      let ok = 0; const introuvables = [];
+      bets.forEach(b => {
+        const m = scTrouverMatch(b, matchs);
+        if (!m) { introuvables.push(b); return; }
+        const sc = m.score || {};
+        const fin = sc.regularTime || sc.fullTime || {};
+        scoresCache[b.id] = { h: fin.home, a: fin.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, t: Date.now() };
+        ok++;
+      });
+      const ids = new Set((state.football || []).map(b => String(b.id)));
+      Object.keys(scoresCache).forEach(k => { if (!ids.has(k)) delete scoresCache[k]; });
+      scEcrire(SC_KEY, scoresCache);
+
+      const nonTermines = bets.filter(b => scoresCache[b.id] && scoresCache[b.id].st !== 'FINISHED').length;
+      scLog = `✅ ${ok} match(s) trouvé(s) sur ${bets.length}` + (nonTermines ? ` (dont ${nonTermines} pas encore terminé(s) : le service gratuit a un peu de retard)` : '') + '.'
+        + (anciens ? `\n${anciens} pari(s) « En cours » de plus de 10 jours ignoré(s).` : '')
+        + (introuvables.length ? `\n\nNon trouvés (compétition non couverte ou nom d'équipe différent) :\n• ` + introuvables.slice(0, 15).map(b => b.match).join('\n• ') : '');
+      dessinerScores();
+      render();
+    }
+
     // ===================== GÉNÉRATEUR DE COMBINÉS =====================
     // Principe : les paris sont rangés dans l'ordre où ils ont été ajoutés ; le 1er est combiné avec
     // le dernier, le 2e avec l'avant-dernier, et ainsi de suite. S'il y en a un nombre impair, celui
@@ -4187,6 +4357,7 @@
             <td class="p-3 align-middle font-semibold text-slate-800">
               <div class="text-xs font-bold text-slate-900">${comboMatchBadge}${b.match || ''}</div>
               <div class="text-[10px] text-slate-400 font-medium">${b.comp || ''}</div>
+              ${scoreHtml(b)}
             </td>
             <td class="p-3 align-middle font-medium text-slate-800">
               ${b.prono || ''} <span class="text-slate-400 text-xs font-normal">(${b.market || ''})</span>
@@ -4262,6 +4433,7 @@
                 <div class="min-w-0">
                   <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
                   <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+                  ${scoreHtml(b)}
                 </div>
               </div>
               ${statusBadge}
