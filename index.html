@@ -537,6 +537,7 @@
           <h2 class="text-sm font-extrabold flex items-center gap-2 text-slate-800">
             <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Historique des Paris
           </h2>
+          <button onclick="ouvrirGenerateurCombines()" class="text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg shadow-sm sm:ml-auto"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Générer les combinés</button>
           <button onclick="clearAll()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold transition flex items-center gap-1">
             <i class="fa-solid fa-trash-can"></i> Tout effacer
           </button>
@@ -3199,6 +3200,119 @@
           <div class="text-lg font-extrabold mt-0.5 ${c.cls}">${escAttr(c.valeur)}</div>
           <div class="text-[11px] text-slate-500 truncate" title="${escAttr(c.detail)}">${escAttr(c.detail)}</div>
         </div>`).join('');
+    }
+
+    // ===================== GÉNÉRATEUR DE COMBINÉS =====================
+    // Principe : les paris sont rangés dans l'ordre où ils ont été ajoutés ; le 1er est combiné avec
+    // le dernier, le 2e avec l'avant-dernier, et ainsi de suite. S'il y en a un nombre impair, celui
+    // du milieu reste en simple. Deux paris du même match ne sont jamais combinés ensemble.
+    let dernierLotCombines = null;
+
+    function jourLocal() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    let genJour = null;
+
+    function calculerPaires(jour) {
+      const list = state.football || [];
+      const dansCombo = new Set();
+      (state.combos.football || []).forEach(c => (c.legIds || []).forEach(id => dansCombo.add(String(id))));
+      const eligibles = list
+        .filter(b => !b.comboId && !dansCombo.has(String(b.id)))
+        .filter(b => b.date === jour)
+        .slice()
+        .sort((a, b) => (Number(a.id) - Number(b.id)));
+      const paires = [], restes = [];
+      let i = 0, j = eligibles.length - 1;
+      while (i < j) {
+        const x = eligibles[i], y = eligibles[j];
+        const kx = normalizeMatchName(x.match), ky = normalizeMatchName(y.match);
+        if (kx && kx === ky) { restes.push(x, y); }       // même match : pas de combiné
+        else paires.push([x, y]);
+        i++; j--;
+      }
+      if (i === j) restes.push(eligibles[i]);
+      return { paires, restes };
+    }
+
+    function ouvrirGenerateurCombines() {
+      let m = document.getElementById('genComboModal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'genComboModal';
+        m.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50';
+        document.body.appendChild(m);
+      }
+      m.classList.remove('hidden');
+      genJour = jourLocal();
+      majApercuGenerateur();
+    }
+
+    function fermerGenerateurCombines() {
+      const m = document.getElementById('genComboModal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function majApercuGenerateur() {
+      const m = document.getElementById('genComboModal');
+      if (!m) return;
+      if (!genJour) genJour = jourLocal();
+      const { paires, restes } = calculerPaires(genJour);
+      const f = n => (Number(n) || 1).toFixed(2).replace('.', ',');
+      const lignes = paires.map(([x, y], k) => `
+        <div class="text-[11px] px-3 py-2 border-b border-slate-100">
+          <div class="font-bold text-slate-700">Combiné ${k + 1} · cote ${f((x.odds || 1) * (y.odds || 1))} · mise ${f(x.stake || 1)} €</div>
+          <div class="text-slate-600 truncate">① ${escAttr(x.match || '')} — ${escAttr(x.prono || '')} <span class="text-blue-600 font-bold">${f(x.odds)}</span></div>
+          <div class="text-slate-600 truncate">② ${escAttr(y.match || '')} — ${escAttr(y.prono || '')} <span class="text-blue-600 font-bold">${f(y.odds)}</span></div>
+        </div>`).join('');
+      m.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[88vh] flex flex-col">
+          <div class="p-4 border-b border-slate-100">
+            <h3 class="font-extrabold text-sm text-slate-800"><i class="fa-solid fa-wand-magic-sparkles text-violet-600 mr-1"></i> Générer les combinés</h3>
+            <p class="text-[11px] text-slate-500 mt-1">1er pari ajouté + dernier, 2e + avant-dernier, et ainsi de suite. Chaque combiné reprend la mise du 1er pari. Seuls les paris de la date choisie (aujourd'hui par défaut) sont utilisés, ceux déjà dans un combiné ne sont pas touchés.</p>
+            <label class="block text-[11px] font-bold text-slate-600 mt-3">Paris du jour :
+              <input type="date" id="genJour" value="${genJour}" onchange="genJour = this.value; majApercuGenerateur()" class="input-field w-full text-xs mt-1">
+            </label>
+          </div>
+          <div class="overflow-y-auto flex-1">${lignes || '<p class="text-xs text-slate-400 italic p-4">Aucune paire possible : il faut au moins 2 paris ce jour-là (de matchs différents).</p>'}</div>
+          <div class="p-4 border-t border-slate-100 flex items-center gap-2">
+            <span class="text-[11px] text-slate-500 flex-1">${paires.length} combiné(s)${restes.length ? ` · ${restes.length} pari(s) restent en simple` : ''}</span>
+            <button onclick="fermerGenerateurCombines()" class="text-xs font-bold text-slate-500 px-3 py-2">Annuler</button>
+            <button onclick="genererCombines()" ${paires.length ? '' : 'disabled'} class="text-xs font-bold bg-violet-600 text-white px-4 py-2 rounded-lg ${paires.length ? '' : 'opacity-40'}">Générer ${paires.length}</button>
+          </div>
+        </div>`;
+    }
+
+    function genererCombines() {
+      const { paires } = calculerPaires(genJour || jourLocal());
+      if (!paires.length) return;
+      const base = Date.now();
+      const ids = [];
+      paires.forEach(([x, y], k) => {
+        const combo = { id: base + k, stake: parseFloat(x.stake) > 0 ? parseFloat(x.stake) : 1, legIds: [x.id, y.id], createdAt: new Date().toISOString() };
+        x.comboId = combo.id; y.comboId = combo.id;
+        state.combos.football.push(combo);
+        ids.push(combo.id);
+      });
+      dernierLotCombines = ids;
+      fermerGenerateurCombines();
+      saveState();
+      const bar = document.getElementById('annulerGenBar');
+      if (bar) bar.remove();
+      const box = document.getElementById('combosListContainer');
+      if (box) box.insertAdjacentHTML('beforebegin', `<div id="annulerGenBar" class="flex items-center justify-between gap-3 bg-violet-50 border border-violet-200 text-violet-800 text-xs font-semibold px-4 py-2 rounded-xl"><span>✓ ${ids.length} combiné(s) généré(s)</span><button onclick="annulerGeneration()" class="font-bold underline">Annuler cette génération</button></div>`);
+    }
+
+    function annulerGeneration() {
+      if (!dernierLotCombines) return;
+      const lot = new Set(dernierLotCombines.map(String));
+      (state.football || []).forEach(b => { if (b.comboId != null && lot.has(String(b.comboId))) delete b.comboId; });
+      state.combos.football = (state.combos.football || []).filter(c => !lot.has(String(c.id)));
+      dernierLotCombines = null;
+      const bar = document.getElementById('annulerGenBar');
+      if (bar) bar.remove();
+      saveState();
     }
 
     function renderCombos() {
