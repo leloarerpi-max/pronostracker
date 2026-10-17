@@ -3189,6 +3189,13 @@
     let scoresCache = scLire(SC_KEY, {});
     let scLog = '';
 
+    function heureMatch(b) {
+      const r = scoresCache[b.id];
+      if (!r || !r.ko) return '';
+      const d = new Date(r.ko);
+      if (isNaN(d)) return '';
+      return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
     function scoreHtml(b) {
       const r = scoresCache[b.id];
       if (!r) return '';
@@ -3361,7 +3368,7 @@
         if (!m) { introuvables.push(b); return; }
         const sc = m.score || {};
         const fin2 = sc.regularTime || sc.fullTime || {};
-        scoresCache[b.id] = { h: fin2.home, a: fin2.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, mn: m.minute, it: m.injuryTime, t: Date.now() };
+        scoresCache[b.id] = { h: fin2.home, a: fin2.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, mn: m.minute, it: m.injuryTime, ko: m.utcDate, t: Date.now() };
         ok++;
       });
       const ids = new Set((state.football || []).map(b => String(b.id)));
@@ -4464,7 +4471,7 @@
           tr.innerHTML = `
             ${comboSelectCell}
             <td class="p-3 align-middle text-center text-xs whitespace-nowrap">${numBadge}</td>
-            <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}</td>
+            <td class="p-3 align-middle text-xs text-blue-600 font-bold whitespace-nowrap">${b.date || ''}${heureMatch(b) ? `<div class="text-[10px] text-slate-500 font-semibold">${heureMatch(b)}</div>` : ''}</td>
             <td class="p-3 align-middle font-semibold text-slate-800">
               <div class="text-xs font-bold text-slate-900">${comboMatchBadge}${b.match || ''}</div>
               <div class="text-[10px] text-slate-400 font-medium">${b.comp || ''}</div>
@@ -4543,7 +4550,7 @@
                 ${comboCheckboxMobile}
                 <div class="min-w-0">
                   <div class="text-xs font-bold text-slate-900 truncate">${numBadge} ${b.match || ''}</div>
-                  <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}</span></div>
+                  <div class="text-[10px] text-slate-400 font-medium truncate">${b.comp || ''} · <span class="text-blue-600 font-bold">${b.date || ''}${heureMatch(b) ? ' · ' + heureMatch(b) : ''}</span></div>
                   ${scoreHtml(b)}
                 </div>
               </div>
