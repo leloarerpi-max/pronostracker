@@ -435,28 +435,6 @@
 
         <div class="card p-5 space-y-3 lg:col-span-2">
           <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
-            <i class="fa-solid fa-scale-balanced text-emerald-600"></i> Calibration : réussite réelle vs réussite attendue
-          </h3>
-          <p class="text-[11px] text-slate-500">Une cote de 2,00 « suppose » 50 % de réussite. Si ta réussite réelle est au-dessus de l'attendue, tes pronostics battent les cotes sur cette tranche.</p>
-          <div class="overflow-x-auto">
-            <table class="w-full text-center text-xs">
-              <thead>
-                <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                  <th class="p-2.5 text-left">Tranche de cote</th>
-                  <th class="p-2.5">Paris</th>
-                  <th class="p-2.5">Réussite réelle</th>
-                  <th class="p-2.5">Attendue (cotes)</th>
-                  <th class="p-2.5">Écart</th>
-                </tr>
-              </thead>
-              <tbody id="calibrationTbody" class="divide-y divide-slate-100 font-medium"></tbody>
-            </table>
-          </div>
-          <p id="calibrationNote" class="text-[10px] text-slate-400"></p>
-        </div>
-
-        <div class="card p-5 space-y-3 lg:col-span-2">
-          <h3 class="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-wide">
             <i class="fa-solid fa-shield-halved text-rose-500"></i> Stats par équipe : où tu gagnes, où tu perds
           </h3>
           <p class="text-[11px] text-slate-500">Compte tous tes paris terminés sur les matchs de l'équipe, quel que soit le marché. Seules les équipes avec au moins 3 paris sont listées.</p>
@@ -3746,43 +3724,6 @@
           }
         });
       });
-
-      // --- Calibration : réussite réelle vs probabilité implicite des cotes ---
-      (function () {
-        const tb = document.getElementById('calibrationTbody');
-        if (!tb) return;
-        const tranches = [
-          { nom: 'Moins de 1,40', min: 0, max: 1.40 },
-          { nom: '1,40 – 1,69', min: 1.40, max: 1.70 },
-          { nom: '1,70 – 1,99', min: 1.70, max: 2.00 },
-          { nom: '2,00 – 2,49', min: 2.00, max: 2.50 },
-          { nom: '2,50 et +', min: 2.50, max: 1e9 }
-        ].map(t => Object.assign(t, { n: 0, w: 0, p: 0 }));
-        const tot = { nom: 'Ensemble', n: 0, w: 0, p: 0 };
-        currentList.forEach(b => {
-          if (b.status !== 'Won' && b.status !== 'Lost') return;
-          const o = parseFloat(b.odds) || 1;
-          if (o <= 1) return;
-          const t = tranches.find(x => o >= x.min && o < x.max);
-          [t, tot].forEach(x => { if (!x) return; x.n++; if (b.status === 'Won') x.w++; x.p += 1 / o; });
-        });
-        const ligne = (t, gras) => {
-          if (!t.n) return '';
-          const reel = t.w / t.n * 100, att = t.p / t.n * 100, ecart = reel - att;
-          const cls = ecart > 2 ? 'text-emerald-600' : ecart < -2 ? 'text-rose-600' : 'text-slate-500';
-          const peu = t.n < 20 ? ' <span class="text-[9px] text-slate-400" title="Moins de 20 paris : peu fiable">(peu fiable)</span>' : '';
-          return `<tr class="${gras ? 'bg-slate-50 font-extrabold' : ''}">
-            <td class="p-2.5 text-left font-bold text-slate-800">${t.nom}</td>
-            <td class="p-2.5">${t.n}${peu}</td>
-            <td class="p-2.5">${reel.toFixed(0)} %</td>
-            <td class="p-2.5">${att.toFixed(0)} %</td>
-            <td class="p-2.5 ${cls}">${ecart >= 0 ? '+' : ''}${ecart.toFixed(0)} pts</td></tr>`;
-        };
-        tb.innerHTML = tranches.map(t => ligne(t, false)).join('') + ligne(tot, true)
-          || '<tr><td colspan="5" class="p-3 text-slate-400 italic">Pas encore de paris terminés.</td></tr>';
-        const note = document.getElementById('calibrationNote');
-        if (note) note.textContent = 'Les cotes enregistrées via l\'Analyseur sont déjà réduites de 4,88 %, ce qui gonfle un peu la réussite attendue. En dessous de 20 paris par tranche, l\'écart peut venir du hasard.';
-      })();
 
       // --- Stats par équipe ---
       (function () {
