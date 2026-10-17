@@ -569,6 +569,7 @@
           </h2>
           <button onclick="ouvrirScores()" class="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-sm sm:ml-auto"><i class="fa-solid fa-futbol mr-1"></i>Scores</button>
           <button onclick="ouvrirGenerateurCombines()" class="text-[11px] font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg shadow-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Générer les combinés</button>
+          <button onclick="ouvrirVerifComp()" class="text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg shadow-sm"><i class="fa-solid fa-list-check mr-1"></i>Vérifier les championnats</button>
           <button onclick="clearAll()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold transition flex items-center gap-1">
             <i class="fa-solid fa-trash-can"></i> Tout effacer
           </button>
@@ -874,29 +875,7 @@
 
   <script>
     let currentSport = 'football';
-    // Lecture protégée : si la donnée principale est illisible, on essaie la copie de secours (sans jamais l'écraser).
-    const DATA_KEY = 'prono_tracker_multisport_data';
-    const DATA_BAK_KEY = 'prono_tracker_multisport_data_bak';
-    let loadWarning = '';
-    function lireEtatStocke() {
-      for (const k of [DATA_KEY, DATA_BAK_KEY]) {
-        try {
-          const raw = localStorage.getItem(k);
-          if (!raw) continue;
-          const obj = JSON.parse(raw);
-          if (obj && typeof obj === 'object' && Array.isArray(obj.football)) {
-            if (k === DATA_BAK_KEY) loadWarning = 'Les données principales étaient illisibles : la copie de secours a été restaurée.';
-            return obj;
-          }
-        } catch (e) {
-          try { localStorage.setItem(k + '_corrompu', localStorage.getItem(k)); } catch (e2) {}
-        }
-      }
-      return null;
-    }
-    let state = lireEtatStocke() || { football: [] };
-    // Demande au navigateur de ne pas effacer les données du site quand il manque de place.
-    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    let state = JSON.parse(localStorage.getItem('prono_tracker_multisport_data')) || { football: [] };
     // Le tennis n'existe plus dans l'appli : on purge toute donnée tennis restante.
     delete state.tennis;
     if (state.combos) delete state.combos.tennis;
@@ -985,7 +964,7 @@
     let compFilterMode = localStorage.getItem('pronotracker_compFilterMode') || 'include'; // 'include' ou 'exclude'
 
     function saveCompFiltersToStorage() {
-      try { localStorage.setItem('pronotracker_compFilters', JSON.stringify(Array.from(currentCompFilters))); } catch (e) {}
+      localStorage.setItem('pronotracker_compFilters', JSON.stringify(Array.from(currentCompFilters)));
     }
     let currentMarketFilter = null;
     let currentOddsFilter = null;
@@ -1027,7 +1006,7 @@
     }
 
     function saveMarketsToStorage() {
-      try { localStorage.setItem('pronotracker_customMarkets', JSON.stringify(footballMarkets)); } catch (e) {}
+      localStorage.setItem('pronotracker_customMarkets', JSON.stringify(footballMarkets));
       if (window.syncSchedule) window.syncSchedule();
     }
 
@@ -1123,47 +1102,16 @@
       return str.toLowerCase().replace(/vs|\-|\_/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
-    // Bandeau rouge visible quand l'enregistrement échoue (avant : échec silencieux).
-    function afficherAlerteSauvegarde(msg) {
-      let el = document.getElementById('saveErrorBanner');
-      if (!el) {
-        el = document.createElement('div');
-        el.id = 'saveErrorBanner';
-        el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:12px 16px;font:700 13px system-ui,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
-        el.onclick = () => el.remove();
-        document.body.appendChild(el);
-      }
-      el.textContent = msg;
-    }
-    function ecrireEtatStocke() {
-      let json;
-      try { json = JSON.stringify(state); } catch (e) { return { ok: false, err: e }; }
-      try { localStorage.setItem(DATA_KEY, json); } catch (e) { return { ok: false, err: e }; }
-      // Vérification : on relit pour être sûr que c'est bien écrit.
-      try { if (localStorage.getItem(DATA_KEY) !== json) return { ok: false, err: new Error('relecture différente') }; } catch (e) { return { ok: false, err: e }; }
-      try { localStorage.setItem(DATA_BAK_KEY, json); } catch (e) {} // copie de secours, non bloquante
-      return { ok: true };
-    }
     function saveState() {
-      const r = ecrireEtatStocke();
-      if (!r.ok) {
-        console.error('Sauvegarde impossible', r.err);
-        afficherAlerteSauvegarde('⚠️ ENREGISTREMENT IMPOSSIBLE : tes derniers changements ne sont PAS sauvegardés (navigation privée ou stockage plein ?). Clique « Sauvegarder » (export) maintenant.');
-      } else {
-        const b = document.getElementById('saveErrorBanner'); if (b) b.remove();
-      }
-      try { populateCompFilterOptions(); } catch (e) { console.error(e); }
-      try { render(); } catch (e) { console.error(e); }
-      try { if (window.syncSchedule) window.syncSchedule(); } catch (e) { console.error(e); }
+      localStorage.setItem('prono_tracker_multisport_data', JSON.stringify(state));
+      populateCompFilterOptions();
+      render();
+      if (window.syncSchedule) window.syncSchedule();
     }
-    window.addEventListener('load', () => { if (loadWarning) afficherAlerteSauvegarde('ℹ️ ' + loadWarning); });
-    // Dès que l'onglet est quitté, on réécrit l'état (couvre les modifications faites sans passer par saveState).
-    document.addEventListener('visibilitychange', () => { if (document.hidden) ecrireEtatStocke(); });
-    window.addEventListener('pagehide', () => { ecrireEtatStocke(); });
 
     function setCompFilterMode(mode) {
       compFilterMode = mode;
-      try { localStorage.setItem('pronotracker_compFilterMode', mode); } catch (e) {}
+      localStorage.setItem('pronotracker_compFilterMode', mode);
       updateCompFilterModeButtons();
       render();
       renderGroupedStats();
@@ -1273,7 +1221,32 @@
         return alignerSurCompetitionExistante(brut.trim());
     }
 
-    function extraireCompetition(texte) {
+    // Devine la compétition d'après l'historique : cherche les paris déjà enregistrés où
+    // apparaissent ces équipes. Priorité à une compétition commune aux deux équipes.
+    function devinerCompetitionParEquipes(home, away) {
+        if (!home || !away || typeof scMemeEquipe !== 'function') return null;
+        const cH = {}, cA = {};
+        (state.football || []).forEach(b => {
+            const comp = (b.comp || '').trim();
+            if (!comp || !b.match) return;
+            const parts = String(b.match).split(/\s+(?:vs\.?|v|-|–|—)\s+/i);
+            parts.forEach(nom => {
+                if (scMemeEquipe(nom, home)) cH[comp] = (cH[comp] || 0) + 1;
+                if (scMemeEquipe(nom, away)) cA[comp] = (cA[comp] || 0) + 1;
+            });
+        });
+        const communes = Object.keys(cH).filter(c => cA[c]);
+        if (communes.length) {
+            communes.sort((a, b) => Math.min(cH[b], cA[b]) - Math.min(cH[a], cA[a]) || (cH[b] + cA[b]) - (cH[a] + cA[a]));
+            return communes[0];
+        }
+        const tous = Object.assign({}, cH);
+        Object.keys(cA).forEach(c => { tous[c] = (tous[c] || 0) + cA[c]; });
+        const cles = Object.keys(tous).sort((a, b) => tous[b] - tous[a]);
+        return cles.length ? cles[0] : null;
+    }
+
+    function extraireCompetition(texte, home, away) {
         // 1) Compétition explicitement étiquetée ("Compétition : ...", "League: ...", "Championnat : ...")
         let m = texte.match(/(?:Comp[ée]tition|Championnat|League|Tournament|Tournoi)\s*:\s*([^.\n|]+)/i);
         if (m && m[1].trim()) return normaliserCompetition(m[1].trim());
@@ -1288,7 +1261,10 @@
         existantes.sort((a, b) => b.length - a.length);
         const low = texte.toLowerCase();
         const trouvee = existantes.find(c => low.includes(c.toLowerCase()));
-        return trouvee || null;
+        if (trouvee) return trouvee;
+
+        // 4) Déduction par les équipes, d'après les paris déjà enregistrés
+        return devinerCompetitionParEquipes(home, away);
     }
 
     // Renvoie le nom du marché tel qu'il existe dans la liste déroulante du tracker
@@ -1690,7 +1666,7 @@
 
         const { home, away } = extraireEquipes(rawText);
         const facteursExternes = extraireFacteursExternes(rawText);
-        const competition = extraireCompetition(rawText);
+        const competition = extraireCompetition(rawText, home, away);
 
         let html = `<h3>Fiche de Match : ${matchName}<span class="badge">${matchDate}</span></h3>`;
 
@@ -2012,10 +1988,6 @@
         try {
           const importedData = JSON.parse(e.target.result);
           if (importedData && typeof importedData === 'object' && importedData.football) {
-            // L'import REMPLACE tout : on prévient si le fichier a moins de paris que l'appli, et on garde une copie.
-            const nActuel = (state.football || []).length, nFichier = Array.isArray(importedData.football) ? importedData.football.length : 0;
-            if (nFichier < nActuel && !confirm('⚠️ Ce fichier contient ' + nFichier + ' pari(s), l\'appli en contient ' + nActuel + '.\n\nL\'import REMPLACE tout : les ' + (nActuel - nFichier) + ' pari(s) en plus seront perdus.\n\nContinuer ?')) return;
-            try { localStorage.setItem('prono_tracker_avant_import', JSON.stringify(state)); } catch (e3) {}
             state = {
               football: Array.isArray(importedData.football) ? importedData.football : [],
               combos: {
@@ -2075,7 +2047,7 @@
           title: 'Sauvegarde PronoTracker',
           text: 'Export de mes pronostics'
         }).then(() => {
-          try { localStorage.setItem('pronotracker_lastBackup', new Date().toISOString()); } catch (e) {}
+          localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
           updateBackupBanner();
         }).catch(err => {
           if (err && err.name !== 'AbortError') {
@@ -2096,12 +2068,12 @@
       downloadAnchor.click();
       downloadAnchor.remove();
       URL.revokeObjectURL(url);
-      try { localStorage.setItem('pronotracker_lastBackup', new Date().toISOString()); } catch (e) {}
+      localStorage.setItem('pronotracker_lastBackup', new Date().toISOString());
       updateBackupBanner();
     }
 
     function snoozeBackupBanner() {
-      try { localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString()); } catch (e) {}
+      localStorage.setItem('pronotracker_backupSnooze', new Date().toISOString());
       document.getElementById('backupBanner').classList.add('hidden');
       document.getElementById('backupBanner').classList.remove('flex');
     }
@@ -3309,6 +3281,140 @@
       return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
     }
     const scPause = ms => new Promise(r => setTimeout(r, ms));
+
+    // ===== VÉRIFICATEUR DE CHAMPIONNATS =====
+    const VC_IGN = 'pronotracker_comp_ignores';
+    const vcEstEurope = c => /champions|europa|conf[ée]rence|coupe|cup|supercoupe/i.test(c || '');
+    let vcLignes = [];
+
+    function vcAnalyser() {
+      const bets = (state.football || []).filter(b => b.match);
+      const info = bets.map(b => ({
+        b, comp: (b.comp || '').trim(),
+        eq: String(b.match).split(/\s+(?:vs\.?|v|-|–|—)\s+/i).slice(0, 2).map(n => scJetons(n))
+      }));
+      const meme = (ta, tb) => {
+        if (!ta.length || !tb.length) return false;
+        if (ta.join(' ') === tb.join(' ')) return true;
+        const [pt, gd] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+        return pt.every(x => gd.some(y => scJetonEgal(x, y)));
+      };
+      // Championnat national principal d'une équipe, hors pari analysé (au moins 2 paris)
+      const topNational = (tokens, sauf) => {
+        const c = {};
+        info.forEach(o => {
+          if (o.b === sauf || !o.comp || vcEstEurope(o.comp)) return;
+          if (o.eq.some(t => meme(t, tokens))) c[o.comp] = (c[o.comp] || 0) + 1;
+        });
+        const k = Object.keys(c).sort((x, y) => c[y] - c[x]);
+        return k.length && c[k[0]] >= 2 ? { comp: k[0], n: c[k[0]], tout: c } : null;
+      };
+      const ignores = new Set(scLire(VC_IGN, []));
+      const lignes = [];
+      const groupes = {};
+      info.forEach(o => { const k = o.b.date + '|' + String(o.b.match).toLowerCase(); (groupes[k] = groupes[k] || new Set()).add(o.comp); });
+
+      info.forEach(o => {
+        if (ignores.has(String(o.b.id))) return;
+        const [h, a] = o.eq;
+        let sugg = null, raison = '';
+        if (!o.comp) {
+          sugg = devinerCompetitionParEquipes((o.b.match.split(/\s+(?:vs\.?|v|-|–|—)\s+/i)[0] || ''), (o.b.match.split(/\s+(?:vs\.?|v|-|–|—)\s+/i)[1] || ''));
+          raison = 'Championnat vide';
+        } else if (h && a) {
+          const th = topNational(h, o.b), ta = topNational(a, o.b);
+          if (th && ta && th.comp === ta.comp && th.comp !== o.comp) {
+            sugg = th.comp; raison = `Les deux équipes jouent ailleurs en ${th.comp} (${th.n} et ${ta.n} paris)`;
+          } else if (!vcEstEurope(o.comp)) {
+            const un = th && !ta ? th : ta && !th ? ta : null;
+            if (un && un.n >= 3 && !un.tout[o.comp] && un.comp !== o.comp) {
+              sugg = un.comp; raison = `Une des équipes est toujours notée ${un.comp} (${un.n} paris)`;
+            }
+          }
+        }
+        const dbl = groupes[o.b.date + '|' + String(o.b.match).toLowerCase()];
+        if (!sugg && dbl && dbl.size > 1) { sugg = o.comp; raison = 'Ce même match existe avec deux championnats différents'; }
+        if (raison) lignes.push({ id: o.b.id, date: o.b.date, match: o.b.match, comp: o.comp, sugg: sugg || '', raison });
+      });
+      return lignes.sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+    }
+
+    function ouvrirVerifComp() {
+      let m = document.getElementById('compModal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'compModal';
+        m.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50';
+        document.body.appendChild(m);
+      }
+      m.classList.remove('hidden');
+      vcLignes = vcAnalyser();
+      vcDessiner();
+    }
+    function fermerVerifComp() { const m = document.getElementById('compModal'); if (m) m.classList.add('hidden'); }
+
+    function vcDessiner() {
+      const m = document.getElementById('compModal');
+      if (!m) return;
+      const comps = Array.from(new Set((state.football || []).map(b => (b.comp || '').trim()).filter(Boolean))).sort();
+      const lignes = vcLignes.map((l, i) => `
+        <div class="border border-slate-200 rounded-xl p-3 space-y-2" id="vcL${i}">
+          <div class="flex justify-between gap-2 text-xs">
+            <div class="font-bold text-slate-800">${escAttr(l.match)}</div>
+            <div class="text-slate-400 shrink-0">${escAttr(l.date || '')}</div>
+          </div>
+          <div class="text-[11px] text-slate-500">Actuellement : <b class="text-rose-600">${escAttr(l.comp || 'vide')}</b> · ${escAttr(l.raison)}</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="vcS${i}" class="input-field text-xs py-1">
+              ${l.sugg ? '' : '<option value="">— choisir —</option>'}
+              ${comps.map(c => `<option value="${escAttr(c)}" ${c === l.sugg ? 'selected' : ''}>${escAttr(c)}</option>`).join('')}
+            </select>
+            <button onclick="vcCorriger(${i})" class="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg">Corriger</button>
+            <button onclick="vcIgnorer(${i})" class="text-[11px] font-bold text-slate-500 hover:text-slate-700 px-2 py-1">Garder tel quel</button>
+          </div>
+        </div>`).join('');
+      m.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[88vh] flex flex-col">
+          <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-800">🔎 Vérification des championnats</h3>
+              <p class="text-[11px] text-slate-500 mt-1">Compare le championnat de chaque pari avec celui des autres paris des mêmes équipes. Les matchs de coupe d'Europe entre équipes de pays différents sont considérés normaux.</p>
+            </div>
+            <button onclick="fermerVerifComp()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="p-4 space-y-3 overflow-y-auto">
+            ${vcLignes.length ? `<p class="text-xs font-bold text-slate-700">${vcLignes.length} pari(s) à vérifier</p>${lignes}
+            <button onclick="vcToutCorriger()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-lg text-xs">Tout corriger avec les choix ci-dessus</button>`
+            : '<p class="text-sm text-emerald-700 font-bold">✅ Aucune incohérence trouvée.</p>'}
+          </div>
+        </div>`;
+    }
+
+    function vcAppliquer(i) {
+      const l = vcLignes[i]; if (!l) return false;
+      const v = (document.getElementById('vcS' + i) || {}).value;
+      if (!v) return false;
+      const bet = (state.football || []).find(b => b.id === l.id);
+      if (!bet) return false;
+      bet.comp = v;
+      return true;
+    }
+    function vcCorriger(i) {
+      if (!vcAppliquer(i)) { alert('Choisis d\'abord un championnat dans la liste.'); return; }
+      saveState();
+      vcLignes = vcAnalyser(); vcDessiner();
+    }
+    function vcToutCorriger() {
+      let n = 0;
+      vcLignes.forEach((l, i) => { if (vcAppliquer(i)) n++; });
+      if (n) saveState();
+      vcLignes = vcAnalyser(); vcDessiner();
+    }
+    function vcIgnorer(i) {
+      const l = vcLignes[i]; if (!l) return;
+      const liste = scLire(VC_IGN, []); liste.push(String(l.id)); scEcrire(VC_IGN, liste);
+      vcLignes = vcAnalyser(); vcDessiner();
+    }
 
     function ouvrirScores() {
       let m = document.getElementById('scoresModal');
