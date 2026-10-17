@@ -3195,7 +3195,12 @@
       let txt = '';
       if (r.st === 'FINISHED' && r.h != null) txt = `Score final : ${r.h}-${r.a}` + (r.hh != null ? ` · mi-temps ${r.hh}-${r.ha}` : '');
       else if (r.st === 'POSTPONED' || r.st === 'SUSPENDED' || r.st === 'CANCELLED') txt = 'Match reporté / annulé';
-      else if ((r.st === 'IN_PLAY' || r.st === 'PAUSED') && r.h != null) txt = `En cours : ${r.h}-${r.a}`;
+      else if (r.st === 'PAUSED' && r.h != null) txt = `Mi-temps : ${r.h}-${r.a}`;
+      else if (r.st === 'IN_PLAY' && r.h != null) {
+        const mn = Number(r.mn), it = Number(r.it);
+        const temps = Number.isFinite(mn) && mn > 0 ? ` · ${mn}${it > 0 ? '+' + it : ''}'` : '';
+        txt = `En cours : ${r.h}-${r.a}${temps}`;
+      }
       else return '';
       return `<div class="text-[10px] font-extrabold text-violet-700">⚽ ${txt}</div>`;
     }
@@ -3356,7 +3361,7 @@
         if (!m) { introuvables.push(b); return; }
         const sc = m.score || {};
         const fin2 = sc.regularTime || sc.fullTime || {};
-        scoresCache[b.id] = { h: fin2.home, a: fin2.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, t: Date.now() };
+        scoresCache[b.id] = { h: fin2.home, a: fin2.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, mn: m.minute, it: m.injuryTime, t: Date.now() };
         ok++;
       });
       const ids = new Set((state.football || []).map(b => String(b.id)));
