@@ -3278,6 +3278,9 @@
               <summary class="cursor-pointer font-bold">Avancé : adresse d'un relais (seulement si le navigateur bloque l'appel)</summary>
               <input id="scRelay" type="text" value="${escAttr(cfg.relay || '')}" placeholder="https://mon-relais.exemple.com" class="input-field w-full text-xs mt-2 font-mono">
             </details>
+            <label class="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+              <input id="scAuto" type="checkbox" ${cfg.auto === false ? '' : 'checked'}> Actualiser automatiquement toutes les 2 minutes (appli ouverte, matchs d'hier et d'aujourd'hui)
+            </label>
             <button onclick="scRecuperer()" ${enCours ? 'disabled' : ''} class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-lg text-xs transition ${enCours ? 'opacity-50' : ''}">
               <i class="fa-solid fa-rotate mr-1"></i> ${enCours ? 'Recherche en cours…' : `Récupérer les scores (${nbAttente} pari(s) en cours)`}
             </button>
@@ -3286,19 +3289,39 @@
         </div>`;
     }
 
-    async function scRecuperer() {
-      const key = (document.getElementById('scKey') || {}).value || '';
-      const relay = ((document.getElementById('scRelay') || {}).value || '').trim().replace(/\/+$/, '');
-      if (!key.trim()) { scLog = '⚠️ Colle d\'abord ta clé API.'; dessinerScores(); return; }
-      scEcrire(SC_CFG, { key: key.trim(), relay });
-      const base = relay || SC_BASE;
+    let scEnCours = false;
+    function scModalOuverte() { const m = document.getElementById('scoresModal'); return !!(m && !m.classList.contains('hidden')); }
 
-      const auj = new Date(); const aujStr = auj.getFullYear() + '-' + String(auj.getMonth() + 1).padStart(2, '0') + '-' + String(auj.getDate()).padStart(2, '0');
-      const limite = scAjouterJours(aujStr, -10);
+    // auto = true : actualisation silencieuse (toutes les 5 min, appli visible), limitée aux matchs d'hier et
+    // d'aujourd'hui dont le score final n'est pas encore connu -> 1 seule requête, très loin de la limite (10/min).
+    async function scRecuperer(auto) {
+      if (scEnCours) return;
+      const cfgSauve = scLire(SC_CFG, {});
+      let key, relay;
+      if (auto === true) { key = cfgSauve.key || ''; relay = cfgSauve.relay || ''; }
+      else {
+        key = (document.getElementById('scKey') || {}).value || '';
+        relay = ((document.getElementById('scRelay') || {}).value || '').trim().replace(/\/+$/, '');
+        const autoBox = document.getElementById('scAuto');
+        if (!key.trim()) { scLog = '⚠️ Colle d\'abord ta clé API.'; dessinerScores(); return; }
+        scEcrire(SC_CFG, { key: key.trim(), relay, auto: autoBox ? autoBox.checked : cfgSauve.auto });
+      }
+      if (!key.trim()) return;
+      const base = relay || SC_BASE;
+      const silencieux = auto === true;
+      const dessiner = (x) => { if (!silencieux || scModalOuverte()) dessinerScores(x); };
+
+      const aujStr = jourLocal();
+      const limite = scAjouterJours(aujStr, silencieux ? -1 : -10);
       const tous = (state.football || []).filter(b => b.status === 'Pending' && b.date && b.date <= aujStr);
-      const bets = tous.filter(b => b.date >= limite);
-      const anciens = tous.length - bets.length;
-      if (!bets.length) { scLog = 'Aucun pari « En cours » des 10 derniers jours à vérifier.' + (anciens ? `\n${anciens} pari(s) plus ancien(s) ignoré(s) : le service gratuit renvoie au plus 10 jours à la fois.` : ''); dessinerScores(); return; }
+      let bets = tous.filter(b => b.date >= limite);
+      // Actualisation auto : on ne redemande pas un match dont le score final est déjà connu.
+      if (silencieux) bets = bets.filter(b => !(scoresCache[b.id] && scoresCache[b.id].st === 'FINISHED'));
+      const anciens = silencieux ? 0 : tous.length - bets.length;
+      if (!bets.length) {
+        if (!silencieux) { scLog = 'Aucun pari « En cours » des 10 derniers jours à vérifier.' + (anciens ? `\n${anciens} pari(s) plus ancien(s) ignoré(s) : le service gratuit renvoie au plus 10 jours à la fois.` : ''); dessinerScores(); }
+        return;
+      }
 
       // Fenêtres de 7 jours (le service accepte 10 jours maximum par requête).
       const jours = [...new Set(bets.map(b => b.date))].sort();
@@ -3308,34 +3331,33 @@
         if (last && scEcartJours(last.from, j) <= 6) last.to = j; else fenetres.push({ from: j, to: j });
       });
 
-      scLog = ''; dessinerScores(true);
+      scEnCours = true;
+      if (!silencieux) { scLog = ''; dessinerScores(true); }
       let matchs = [];
+      const fin = (msg) => { scEnCours = false; if (msg && (!silencieux || scModalOuverte())) { scLog = msg; dessinerScores(); } };
       try {
         for (let i = 0; i < fenetres.length; i++) {
-          if (i > 0) { scLog = `Pause pour respecter la limite du service gratuit (${i}/${fenetres.length})…`; dessinerScores(true); await scPause(6500); }
+          if (i > 0) { if (!silencieux) { scLog = `Pause pour respecter la limite du service gratuit (${i}/${fenetres.length})…`; dessinerScores(true); } await scPause(6500); }
           const f = fenetres[i];
           const url = `${base}/v4/matches?dateFrom=${scAjouterJours(f.from, -1)}&dateTo=${scAjouterJours(f.to, 1)}`;
           let rep;
           try { rep = await fetch(url, { headers: { 'X-Auth-Token': key.trim() } }); }
-          catch (e) {
-            scLog = '❌ Le navigateur n\'a pas pu joindre le service (blocage de sécurité « CORS » ou pas de connexion). Si tu as internet, il faudra utiliser un relais : dis-le moi.';
-            dessinerScores(); return;
-          }
-          if (rep.status === 429) { scLog = '⏳ Trop de requêtes : réessaie dans une minute.'; dessinerScores(); return; }
-          if (rep.status === 400 || rep.status === 401 || rep.status === 403) { scLog = '❌ Clé refusée (' + rep.status + '). Vérifie qu\'elle est bien copiée en entier, sans espace.'; dessinerScores(); return; }
-          if (!rep.ok) { scLog = '❌ Erreur du service (' + rep.status + '). Réessaie plus tard.'; dessinerScores(); return; }
+          catch (e) { return fin('❌ Le navigateur n\'a pas pu joindre le service (blocage de sécurité « CORS » ou pas de connexion). Si tu as internet, il faudra utiliser un relais : dis-le moi.'); }
+          if (rep.status === 429) return fin('⏳ Trop de requêtes : réessaie dans une minute.');
+          if (rep.status === 400 || rep.status === 401 || rep.status === 403) return fin('❌ Clé refusée (' + rep.status + '). Vérifie qu\'elle est bien copiée en entier, sans espace.');
+          if (!rep.ok) return fin('❌ Erreur du service (' + rep.status + '). Réessaie plus tard.');
           const data = await rep.json();
           matchs = matchs.concat(data.matches || []);
         }
-      } catch (e) { scLog = '❌ Réponse illisible du service : ' + e.message; dessinerScores(); return; }
+      } catch (e) { return fin('❌ Réponse illisible du service : ' + e.message); }
 
       let ok = 0; const introuvables = [];
       bets.forEach(b => {
         const m = scTrouverMatch(b, matchs);
         if (!m) { introuvables.push(b); return; }
         const sc = m.score || {};
-        const fin = sc.regularTime || sc.fullTime || {};
-        scoresCache[b.id] = { h: fin.home, a: fin.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, t: Date.now() };
+        const fin2 = sc.regularTime || sc.fullTime || {};
+        scoresCache[b.id] = { h: fin2.home, a: fin2.away, hh: (sc.halfTime || {}).home, ha: (sc.halfTime || {}).away, st: m.status, t: Date.now() };
         ok++;
       });
       const ids = new Set((state.football || []).map(b => String(b.id)));
@@ -3346,9 +3368,28 @@
       scLog = `✅ ${ok} match(s) trouvé(s) sur ${bets.length}` + (nonTermines ? ` (dont ${nonTermines} pas encore terminé(s) : le service gratuit a un peu de retard)` : '') + '.'
         + (anciens ? `\n${anciens} pari(s) « En cours » de plus de 10 jours ignoré(s).` : '')
         + (introuvables.length ? `\n\nNon trouvés (compétition non couverte ou nom d'équipe différent) :\n• ` + introuvables.slice(0, 15).map(b => b.match).join('\n• ') : '');
-      dessinerScores();
+      scEnCours = false;
+      if (!silencieux || scModalOuverte()) dessinerScores();
       render();
     }
+
+    // Actualisation automatique : toutes les 2 minutes, seulement si l'appli est visible, qu'une clé est
+    // enregistrée et que l'option est active (par défaut oui). 1 requête par passage (limite : 10 par minute).
+    const SC_AUTO_MS = 2 * 60 * 1000;
+    let scDerniereAuto = 0;
+    function scAutoTick() {
+      try {
+        if (document.hidden || !navigator.onLine) return;
+        const cfg = scLire(SC_CFG, {});
+        if (!cfg.key || cfg.auto === false) return;
+        if (Date.now() - scDerniereAuto < SC_AUTO_MS - 2000) return;
+        scDerniereAuto = Date.now();
+        scRecuperer(true);
+      } catch (e) {}
+    }
+    setInterval(scAutoTick, SC_AUTO_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) scAutoTick(); });
+    window.addEventListener('load', () => setTimeout(scAutoTick, 4000));
 
     // ===================== GÉNÉRATEUR DE COMBINÉS =====================
     // Principe : les paris sont rangés dans l'ordre où ils ont été ajoutés ; le 1er est combiné avec
