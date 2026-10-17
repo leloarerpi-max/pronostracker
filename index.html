@@ -205,6 +205,17 @@
       background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: .75rem;
       font-size: .75rem; font-weight: 600; color: #334155; padding: .6rem .6rem; cursor: pointer;
     }
+    /* Formulaire "Ajouter un Pari" repliable sur le côté */
+    #formStrip { display: none; }
+    #mainGrid.form-replie #formCard { padding: 0.5rem; }
+    #mainGrid.form-replie #formCard > :not(#formStrip) { display: none !important; }
+    #mainGrid.form-replie #formStrip { display: flex; }
+    @media (min-width: 1024px) {
+      #mainGrid.form-replie { grid-template-columns: 52px minmax(0, 1fr); }
+      #mainGrid.form-replie > .lg\:col-span-2 { grid-column: span 1 / span 1 !important; }
+      #mainGrid.form-replie #formStrip { flex-direction: column; align-items: center; padding: 0.5rem 0; }
+      #mainGrid.form-replie #formStrip .strip-txt { writing-mode: vertical-rl; transform: rotate(180deg); }
+    }
   </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -434,13 +445,19 @@
     </div>
 
     <!-- FORMULAIRE ET HISTORIQUE -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div id="mainGrid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <!-- FORMULAIRE DE SAISIE -->
-      <div class="card p-5 space-y-4 lg:col-span-1 h-fit">
-        <h2 id="formTitle" class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+      <div id="formCard" class="card p-5 space-y-4 lg:col-span-1 h-fit">
+        <button id="formStrip" type="button" onclick="basculerFormulaire(false)" title="Déplier « Ajouter un Pari »" class="w-full items-center justify-center gap-2 text-xs font-extrabold text-blue-600">
+          <i class="fa-solid fa-plus-circle"></i><span class="strip-txt">Ajouter un Pari</span><i class="fa-solid fa-chevron-right lg:mt-1"></i>
+        </button>
+        <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+        <h2 id="formTitle" class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-plus-circle text-blue-600"></i> Ajouter un Pari
         </h2>
+        <button type="button" onclick="basculerFormulaire(true)" title="Replier sur le côté" class="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 text-xs"><i class="fa-solid fa-chevron-left"></i></button>
+        </div>
         
         <!-- IMPORT UNIVERSEL -->
         <div id="quickAddBox" class="p-3.5 border rounded-xl space-y-2">
@@ -1869,6 +1886,14 @@
         analyzerBtn.className = inactiveClass;
       }
     }
+
+    // Replie / déplie le formulaire "Ajouter un Pari" (état mémorisé sur cet appareil).
+    function basculerFormulaire(replier) {
+      const g = document.getElementById('mainGrid');
+      if (g) g.classList.toggle('form-replie', !!replier);
+      try { localStorage.setItem('pronotracker_formReplie', replier ? '1' : '0'); } catch (e) {}
+    }
+    try { if (localStorage.getItem('pronotracker_formReplie') === '1') document.addEventListener('DOMContentLoaded', () => basculerFormulaire(true)); } catch (e) {}
 
     function switchSport(sport) {
       currentSport = 'football';
