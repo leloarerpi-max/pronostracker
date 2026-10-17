@@ -424,14 +424,6 @@
       </div>
     </div>
 
-    <!-- RECORDS -->
-    <div class="card p-5 space-y-3">
-      <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-        <i class="fa-solid fa-trophy text-amber-500"></i> Records
-      </h3>
-      <div id="recordsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-    </div>
-
     <!-- MES COMBINÉS -->
     <div class="card p-5 space-y-3">
       <h3 class="text-xs font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -3118,90 +3110,6 @@
       return (withSign ? (v > 0 ? '+' : v < 0 ? '−' : '') : '') + txt + ' €';
     }
 
-    // ===================== RECORDS =====================
-    function renderRecords() {
-      const box = document.getElementById('recordsContainer');
-      if (!box) return;
-      const sp = currentSport;
-      const bets = (state[sp] || []);
-      const combos = (state.combos[sp] || []).map(c => {
-        const legs = comboLegs(sp, c);
-        return { c, legs, status: comboStatus(sp, c), odds: comboOdds(sp, c), profit: comboProfit(sp, c),
-                 date: legs.reduce((mx, l) => (l.date && l.date > mx ? l.date : mx), '') };
-      }).filter(r => r.legs.length > 1);
-      const fmtO = o => o.toFixed(2).replace('.', ',');
-      const fmtD = d => d ? d.split('-').reverse().join('/') : '';
-      const betProfit = b => b.status === 'Won' ? ((b.odds || 1) - 1) * (b.stake || 0) : b.status === 'Lost' ? -(b.stake || 0) : 0;
-      const best = (arr, f) => arr.reduce((m, x) => (m === null || f(x) > f(m)) ? x : m, null);
-      const worst = (arr, f) => arr.reduce((m, x) => (m === null || f(x) < f(m)) ? x : m, null);
-
-      const won = bets.filter(b => b.status === 'Won');
-      const lost = bets.filter(b => b.status === 'Lost');
-      const wonC = combos.filter(r => r.status === 'Won');
-
-      const cards = [];
-      const add = (icon, titre, valeur, detail, cls) => cards.push({ icon, titre, valeur, detail, cls: cls || 'text-slate-800' });
-
-      let r = best(won, b => b.odds || 1);
-      if (r) add('🎯', 'Plus grosse cote gagnée', fmtO(r.odds), `${r.match || ''} — ${r.prono || ''} · ${fmtD(r.date)}`, 'text-blue-600');
-      r = best(wonC, x => x.odds);
-      if (r) add('🚀', 'Plus grosse cote de combiné gagné', fmtO(r.odds), `${r.legs.length} sélections · ${fmtD(r.date)}`, 'text-violet-600');
-      r = best(combos, x => x.legs.length);
-      if (r) add('📚', 'Combiné le plus long', `${r.legs.length} sélections`, `cote ${fmtO(r.odds)} · ${r.status === 'Won' ? 'gagné' : r.status === 'Lost' ? 'perdu' : 'en cours'} · ${fmtD(r.date)}`);
-      r = best(wonC, x => x.legs.length);
-      if (r) add('🏅', 'Plus long combiné gagné', `${r.legs.length} sélections`, `cote ${fmtO(r.odds)} · ${fmtD(r.date)}`, 'text-emerald-600');
-
-      const gains = [];
-      won.forEach(b => gains.push({ g: betProfit(b), label: `${b.match || ''} — ${b.prono || ''}`, date: b.date }));
-      wonC.forEach(x => gains.push({ g: x.profit, label: `Combiné ${x.legs.length} sél. (cote ${fmtO(x.odds)})`, date: x.date }));
-      r = best(gains, x => x.g);
-      if (r) add('💰', 'Plus gros gain', fmtMoney(r.g, true), `${r.label} · ${fmtD(r.date)}`, 'text-emerald-600');
-      r = best(won, b => b.stake || 0);
-      if (r) add('💶', 'Plus grosse mise gagnée', fmtMoney(r.stake || 0), `${r.match || ''} @ ${fmtO(r.odds || 1)} · ${fmtD(r.date)}`);
-      r = best(lost, b => b.stake || 0);
-      if (r) add('💥', 'Plus grosse perte', fmtMoney(-(r.stake || 0)), `${r.match || ''} — ${r.prono || ''} · ${fmtD(r.date)}`, 'text-rose-600');
-
-      // Séries (ordre chronologique) sur les paris terminés
-      const done = bets.filter(b => b.status === 'Won' || b.status === 'Lost')
-        .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (Number(a.id) - Number(b.id)));
-      let bW = 0, bL = 0, cur = 0, curS = null, wEnd = '', lEnd = '';
-      done.forEach(b => {
-        if (b.status === curS) cur++; else { curS = b.status; cur = 1; }
-        if (curS === 'Won' && cur > bW) { bW = cur; wEnd = b.date; }
-        if (curS === 'Lost' && cur > bL) { bL = cur; lEnd = b.date; }
-      });
-      if (bW) add('🔥', 'Meilleure série de victoires', `${bW} d'affilée`, `terminée le ${fmtD(wEnd)}`, 'text-emerald-600');
-      if (bL) add('🧊', 'Pire série de défaites', `${bL} d'affilée`, `terminée le ${fmtD(lEnd)}`, 'text-rose-600');
-      if (done.length) add(curS === 'Won' ? '📈' : '📉', 'Série en cours', `${cur} ${curS === 'Won' ? 'gagné(s)' : 'perdu(s)'}`, 'sur les derniers paris terminés', curS === 'Won' ? 'text-emerald-600' : 'text-rose-600');
-
-      // Meilleur / pire jour et mois (paris + combinés)
-      const jours = {}, mois = {};
-      const cumul = (d, v) => { if (!d) return; jours[d] = (jours[d] || 0) + v; const m = d.slice(0, 7); mois[m] = (mois[m] || 0) + v; };
-      done.forEach(b => cumul(b.date, betProfit(b)));
-      combos.filter(x => x.status !== 'Pending').forEach(x => cumul(x.date, x.profit));
-      const jl = Object.entries(jours), ml = Object.entries(mois);
-      const moisNom = m => { const [y, mm] = m.split('-'); return ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'][Number(mm) - 1] + ' ' + y; };
-      let e = best(jl, x => x[1]);
-      if (e && e[1] > 0) add('☀️', 'Meilleur jour', fmtMoney(e[1], true), fmtD(e[0]), 'text-emerald-600');
-      e = worst(jl, x => x[1]);
-      if (e && e[1] < 0) add('🌧️', 'Pire jour', fmtMoney(e[1], true), fmtD(e[0]), 'text-rose-600');
-      e = best(ml, x => x[1]);
-      if (e && e[1] > 0) add('📅', 'Meilleur mois', fmtMoney(e[1], true), moisNom(e[0]), 'text-emerald-600');
-      e = worst(ml, x => x[1]);
-      if (e && e[1] < 0) add('📆', 'Pire mois', fmtMoney(e[1], true), moisNom(e[0]), 'text-rose-600');
-
-      if (!cards.length) {
-        box.innerHTML = `<p class="text-xs text-slate-400 italic sm:col-span-2 lg:col-span-3">Les records apparaîtront dès que tu auras des paris terminés.</p>`;
-        return;
-      }
-      box.innerHTML = cards.map(c => `
-        <div class="rounded-xl border border-slate-200 bg-white/70 p-3 min-w-0">
-          <div class="text-[10px] font-bold uppercase tracking-wide text-slate-500">${c.icon} ${c.titre}</div>
-          <div class="text-lg font-extrabold mt-0.5 ${c.cls}">${escAttr(c.valeur)}</div>
-          <div class="text-[11px] text-slate-500 truncate" title="${escAttr(c.detail)}">${escAttr(c.detail)}</div>
-        </div>`).join('');
-    }
-
     // ===================== GÉNÉRATEUR DE COMBINÉS =====================
     // Principe : les paris sont rangés dans l'ordre où ils ont été ajoutés ; le 1er est combiné avec
     // le dernier, le 2e avec l'avant-dernier, et ainsi de suite. S'il y en a un nombre impair, celui
@@ -4404,7 +4312,6 @@
       }
 
       renderCombos();
-      renderRecords();
       renderDailyStats();
       renderGroupedStats();
       renderFootballCategoryStats();
